@@ -21,3 +21,13 @@ FIREWATCH_HOST=0.0.0.0 uv run wfp
 ```
 
 Set `FIREWATCH_URL` on the Pi to the dashboard computer's LAN address, such as `http://192.168.1.10:8080`. For a shared network, set the same `FIREWATCH_INGEST_TOKEN` environment variable on both the dashboard host and Pi; FireWatch will require it in the request header.
+
+### Share a temporary public link
+
+After installing `cloudflared`, run:
+
+```bash
+./start_public_firewatch.sh
+```
+
+Cloudflare prints a temporary `trycloudflare.com` URL. Press `Ctrl+C` to turn it off.
