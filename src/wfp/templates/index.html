@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FireWatch — Wildfire Prevention</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="mobile-bar"><a class="brand" href="#overview"><span class="brand-mark" aria-label="FireWatch"><span class="flame">🔥</span><span class="binoculars">●●</span></span> firewatch</a></div>
+  <aside class="sidebar">
+    <a class="brand" href="#"><span class="brand-mark" aria-label="FireWatch"><span class="flame">🔥</span><span class="binoculars">●●</span></span> firewatch</a>
+    <nav>
+      <a class="active" href="#overview"><span>⊞</span> Overview</a>
+      <a href="#map-card"><span>⌖</span> Device map</a>
+      <a href="#devices"><span>▣</span> All devices</a>
+      <a href="#alerts"><span>◌</span> Alerts <b id="alertBadge" class="{{ 'hidden-badge' if not (alerts|selectattr('open')|rejectattr('acknowledged')|list|length) else '' }}">{{ alerts|selectattr('open')|rejectattr('acknowledged')|list|length }}</b></a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="coverage"><span class="pulse-dot"></span> Monitoring active</div>
+      <p>Pacific Northwest<br>Fire Prevention Network</p>
+    </div>
+  </aside>
+
+  <main>
+    <header>
+      <div><p class="eyebrow">Live wildfire prevention network</p><h1>Wildfire prevention dashboard.</h1></div>
+    </header>
+
+    <section class="stats" id="overview">
+      <article><p>Active devices</p><strong>3 <small>/ 4</small></strong><span class="up">↑ All systems online</span></article>
+      <article><p>Area risk level</p><strong>Moderate</strong><span class="amber">● Conditions changing</span></article>
+      <article><p>Average humidity</p><strong>23<small>%</small></strong><span>Across monitored area</span></article>
+      <article><p>Open alerts</p><strong id="openAlerts">{{ alerts|selectattr('open')|list|length }}</strong><span class="alert-text">● Requires attention</span></article>
+    </section>
+
+    <section class="alerts-section" id="alerts">
+      <div class="section-heading"><div><p class="eyebrow">Attention needed</p><h2>Alerts</h2></div><span class="alert-summary" id="alertSummary">{{ alerts|selectattr('open')|list|length }} open</span></div>
+      <div class="alerts-list" id="alertsList">
+        {% for alert in alerts %}
+        <article class="alert-row {{ 'resolved' if not alert.open else '' }} {{ 'acknowledged' if alert.open and alert.acknowledged else '' }}" data-alert-id="{{ alert.id }}" data-unacknowledged="{{ 'true' if alert.open and not alert.acknowledged else 'false' }}">
+          <span class="alert-icon {{ alert.severity }}">{% if alert.severity == 'warning' %}!{% elif alert.severity == 'info' %}i{% else %}✓{% endif %}</span>
+          <div><b>{{ alert.title }}</b><p>{{ alert.detail }}</p><small>{{ alert.id }} · {{ alert.time }}</small></div>
+          {% if alert.open and not alert.acknowledged %}<button class="acknowledge" data-acknowledge="{{ alert.id }}">Acknowledge</button>{% elif alert.open %}<span class="acknowledged-label">Acknowledged</span>{% else %}<span class="resolved-label">Resolved</span>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="content-grid">
+      <article class="map-card" id="map-card">
+        <div class="section-heading"><div><p class="eyebrow">Live coverage</p><h2>Device map</h2></div><button class="text-button" id="centerMap">◎ Center map</button></div>
+        <div id="map" class="map" aria-label="OpenStreetMap device map"></div>
+      </article>
+
+      <article class="inspector" id="inspector">
+        <div class="empty-state"><div class="empty-icon">⌁</div><h3>Select a device</h3><p>Click a Raspberry Pi marker on the map to view its live sensor data.</p></div>
+        <div class="device-detail hidden">
+          <div class="device-top"><div><p class="eyebrow" id="device-id"></p><h2 id="device-name"></h2><p class="device-location" id="device-location"></p></div><span class="status-pill" id="device-status"></span></div>
+          <div class="sensor-grid">
+            <div><span>THERMOMETER</span><strong id="temp"></strong></div><div><span>HUMIDITY</span><strong id="humidity"></strong></div>
+            <div><span>SMOKE INDEX</span><strong id="smoke"></strong></div><div><span>WIND SPEED</span><strong id="wind"></strong></div>
+          </div>
+          <div class="sensor-note"><span>◒</span><p>Last updated <b id="last-seen"></b></p></div>
+          <div class="device-actions"><button class="secondary-action" data-action="test sensor">↻ Test sensors</button><button class="primary-action" data-action="view camera">View camera ↗</button></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="devices-section" id="devices">
+      <div class="section-heading"><div><p class="eyebrow">Network status</p><h2>Nearby Raspberry Pi devices</h2></div><button class="text-button" id="filterButton">⇅ Filter</button></div>
+      <div class="device-list">
+        {% for device in devices %}
+        <button class="device-row" data-device-row="{{ device.id }}"><span class="device-symbol {{ device.status }}">⌁</span><span class="row-name"><b>{{ device.name }}</b><small>{{ device.id }} · {{ device.location }}</small></span><span class="row-reading"><b>{{ device.temperature }}°C</b><small>Temperature</small></span><span class="row-reading"><b>{{ device.humidity }}%</b><small>Humidity</small></span><span class="row-status {{ device.status }}">{{ device.status }}</span><span class="arrow">→</span></button>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+  <div class="toast" role="status"></div>
+  <script>window.DEVICES = {{ devices|tojson }};</script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
