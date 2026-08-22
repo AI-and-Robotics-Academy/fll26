@@ -31,3 +31,43 @@ After installing `cloudflared`, run:
 ```
 
 Cloudflare prints a temporary `trycloudflare.com` URL. Press `Ctrl+C` to turn it off.
+
+### Read the humidity sensor's digital output
+
+For an MH-series sensor module wired with `DO` on physical pin 11 (GPIO17),
+connect `VCC` to **3.3V** (physical pin 1) and `GND` to physical pin 6. Do not
+power the module from 5V when its `DO` pin connects directly to the Pi.
+
+On the Raspberry Pi, install the GPIO library once if necessary:
+
+```bash
+sudo apt install python3-gpiozero
+```
+
+Then run:
+
+```bash
+uv run python read_humidity_sensor.py
+```
+
+If it reports a GPIO permission error, sign out and back in so your `gpio`
+group membership takes effect, then rerun the same `uv` command.
+
+Run this from a terminal, not from Thonny. If Thonny previously ran the reader,
+press its red **Stop** button first so it releases GPIO17. The script then stops
+older terminal copies of itself automatically before reading the sensor.
+
+This reads the module's `DO` threshold as `HIGH` or `LOW`. It cannot report an
+exact humidity percentage until `AO` is connected through an analog-to-digital
+converter (ADC), such as an MCP3008.
+
+### Read a second air-moisture sensor on GPIO22
+
+For a sensor with its `DO` wire on physical pin 15 (GPIO22), use **3.3V** for
+`VCC`, a GND pin for `GND`, and run:
+
+```bash
+uv run python read_air_moisture_sensor.py
+```
+
+It prints the raw digital state: `HIGH` or `LOW`.
