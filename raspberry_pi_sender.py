@@ -17,19 +17,9 @@ def read_temperature_humidity():
     return 25.0, 35.0
 
 
-def read_smoke():
-    # MQ-series sensors need an ADC (such as MCP3008); return calibrated index.
-    return 2.0
-
-
-def read_wind_speed():
-    # Convert anemometer pulse counts to km/h here.
-    return 4.0
-
-
 def send_reading():
     temperature, humidity = read_temperature_humidity()
-    payload = {"name": "My Pi sensor", "location": "Set this location", "temperature": temperature, "humidity": humidity, "smoke": read_smoke(), "wind": read_wind_speed(), "battery": 90, "lat": 47.67399, "lng": -122.12151}
+    payload = {"name": "My Pi sensor", "location": "Set this location", "temperature": temperature, "humidity": humidity, "air_humidity": humidity, "battery": 90, "lat": 47.67399, "lng": -122.12151}
     headers = {"X-FireWatch-Token": TOKEN} if TOKEN else {}
     response = requests.post(f"{FIREWATCH_URL}/api/devices/{DEVICE_ID}/telemetry", json=payload, headers=headers, timeout=10)
     response.raise_for_status()

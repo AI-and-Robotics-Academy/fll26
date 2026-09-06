@@ -63,7 +63,7 @@
           <div class="device-top"><div><p class="eyebrow" id="device-id"></p><h2 id="device-name"></h2><p class="device-location" id="device-location"></p></div><span class="status-pill" id="device-status"></span></div>
           <div class="sensor-grid">
             <div><span>THERMOMETER</span><strong id="temp"></strong></div><div><span>HUMIDITY</span><strong id="humidity"></strong></div>
-            <div><span>SMOKE INDEX</span><strong id="smoke"></strong></div><div><span>WIND SPEED</span><strong id="wind"></strong></div>
+            <div><span>AIR HUMIDITY</span><strong id="air-humidity"></strong></div>
           </div>
           <div class="sensor-note"><span>◒</span><p>Last updated <b id="last-seen"></b></p></div>
           <div class="device-actions"><button class="secondary-action" data-action="test sensor">↻ Test sensors</button><button class="primary-action" data-action="view camera">View camera ↗</button></div>
@@ -80,6 +80,12 @@
       </div>
     </section>
   </main>
+  <button class="ai-launcher" id="aiToggle" aria-label="Open FireWatch AI">✦ Ask FireWatch AI</button>
+  <section class="ai-chat hidden" id="aiChat" aria-label="FireWatch AI chat">
+    <header><div><p class="eyebrow">Live sensor helper</p><h2>FireWatch AI</h2></div><button class="close-ai" id="aiClose" aria-label="Close chat">×</button></header>
+    <div class="chat-messages" id="chatMessages"><div class="chat-message assistant">Hi! Ask me about your devices, alerts, or wildfire-prevention readings.</div></div>
+    <form class="chat-form" id="chatForm"><input id="chatInput" maxlength="1500" placeholder="Ask about your sensors..." autocomplete="off" required><button aria-label="Send message">↑</button></form>
+  </section>
   <div class="toast" role="status"></div>
   <script>window.DEVICES = {{ devices|tojson }};</script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>

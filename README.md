@@ -12,7 +12,7 @@ uv run wfp
 
 ### Connect a Raspberry Pi
 
-FireWatch accepts Pi JSON telemetry at `POST /api/devices/<device-id>/telemetry`. The included `raspberry_pi_sender.py` is a hardware-ready starting point: install `requests`, replace the `read_*` examples with GPIO code for your DHT22, smoke sensor/ADC, and anemometer, then set its coordinates to the Pi's real location.
+FireWatch accepts Pi JSON telemetry at `POST /api/devices/<device-id>/telemetry`. The included `raspberry_pi_sender.py` is a hardware-ready starting point: install `requests`, replace its sensor-reading example with your GPIO code, then set its coordinates to the Pi's real location.
 
 For Pi access over your local network, run on the dashboard computer with:
 
@@ -31,6 +31,20 @@ After installing `cloudflared`, run:
 ```
 
 Cloudflare prints a temporary `trycloudflare.com` URL. Press `Ctrl+C` to turn it off.
+
+### Turn on FireWatch AI
+
+Create an OpenAI API key, then set it only in your terminal before starting
+FireWatch. Do not put the key in source code or commit it to Git.
+
+```bash
+export OPENAI_API_KEY="your_secret_key_here"
+./start_public_firewatch.sh
+```
+
+The **Ask FireWatch AI** button will then answer questions using the current
+device readings. You can optionally choose a different model with
+`FIREWATCH_AI_MODEL`.
 
 ### Read the humidity sensor's digital output
 

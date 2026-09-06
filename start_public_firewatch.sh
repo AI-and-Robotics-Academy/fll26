@@ -11,8 +11,13 @@ fi
 
 started_server="false"
 server_pid=""
+tunnel_pid=""
+tunnel_log="/tmp/firewatch-cloudflared.log"
 
 cleanup() {
+  if [ -n "$tunnel_pid" ]; then
+    kill "$tunnel_pid" 2>/dev/null || true
+  fi
   if [ "$started_server" = "true" ] && [ -n "$server_pid" ]; then
     kill "$server_pid" 2>/dev/null || true
   fi
@@ -40,4 +45,18 @@ fi
 
 echo "FireWatch is ready. Cloudflare will print your temporary public link below."
 echo "Press Ctrl+C when you want to turn the public link off."
-cloudflared tunnel --url http://127.0.0.1:8080
+rm -f "$tunnel_log"
+cloudflared tunnel --url http://127.0.0.1:8080 --logfile "$tunnel_log" &
+tunnel_pid=$!
+
+for _ in {1..20}; do
+  public_url=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$tunnel_log" 2>/dev/null | head -n 1 || true)
+  if [ -n "$public_url" ]; then
+    echo ""
+    echo "Public FireWatch link: $public_url"
+    break
+  fi
+  sleep 1
+done
+
+wait "$tunnel_pid"

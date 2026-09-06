@@ -8,6 +8,7 @@ dependencies = [
     "flask>=3.1.0",
     "gpiozero>=2.0.1.post3",
     "lgpio>=0.2.2.0",
+    "openai>=3.6.0",
 ]
 
 [project.scripts]
