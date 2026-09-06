@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
 import os
+from pathlib import Path
+import json
 
 from flask import Flask, jsonify, render_template, request
 from openai import APIConnectionError, APIStatusError, AuthenticationError, OpenAI, RateLimitError
@@ -17,6 +19,20 @@ ALERTS = [
     {"id": "AL-103", "device_id": "FW-01", "type": "sensor_check", "title": "Sensor check completed", "detail": "Bridle Trails sensor check completed successfully.", "severity": "info", "time": "42 min ago", "open": True, "acknowledged": False},
     {"id": "AL-102", "device_id": "FW-03", "type": "wind_advisory", "title": "Wind advisory cleared", "detail": "Wind speed returned below the configured threshold.", "severity": "resolved", "time": "2 hr ago", "open": False, "acknowledged": True},
 ]
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+RESOURCE_FILE = ROOT_DIR / "src" / "data" / "resources.json"
+
+
+def load_resources() -> list[dict]:
+    if not RESOURCE_FILE.exists():
+        return []
+    with RESOURCE_FILE.open("r", encoding="utf-8") as handle:
+        data = json.load(handle)
+    return data if isinstance(data, list) else []
+
+
+RESOURCES = load_resources()
 
 
 def utc_timestamp() -> str:
@@ -48,6 +64,10 @@ def create_app() -> Flask:
     def dashboard():
         return render_template("index.html", devices=DEVICES, alerts=ALERTS)
 
+    @app.get("/resources")
+    def resources_page():
+        return render_template("resources.html", resources=RESOURCES)
+
     @app.get("/api/devices")
     def devices():
         return jsonify(DEVICES)
@@ -55,6 +75,10 @@ def create_app() -> Flask:
     @app.get("/api/alerts")
     def alerts():
         return jsonify(ALERTS)
+
+    @app.get("/api/resources")
+    def resources():
+        return jsonify(RESOURCES)
 
     @app.post("/api/alerts/<alert_id>/acknowledge")
     def acknowledge_alert(alert_id: str):
