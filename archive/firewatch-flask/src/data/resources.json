@@ -1,0 +1,79 @@
+[
+  {
+    "id": "water_tanker_01",
+    "type": "water_tanker",
+    "location": { "lat": 47.699, "lng": -122.154 },
+    "status": "Available",
+    "capacity": {
+      "water_gallons": 2500,
+      "crew": 2
+    },
+    "lastUpdated": "2026-09-06T14:22:00Z"
+  },
+  {
+    "id": "firetruck_07",
+    "type": "firetruck",
+    "location": { "lat": 47.702, "lng": -122.075 },
+    "status": "In Use",
+    "capacity": {
+      "water_gallons": 1200,
+      "crew": 4
+    },
+    "lastUpdated": "2026-09-06T14:22:00Z"
+  },
+  {
+    "id": "ambulance_03",
+    "type": "ambulance",
+    "location": { "lat": 47.645, "lng": -122.084 },
+    "status": "Low Supply",
+    "capacity": {
+      "patients": 2,
+      "med_kits": 4
+    },
+    "lastUpdated": "2026-09-06T14:22:00Z"
+  },
+  {
+    "id": "evac_bus_02",
+    "type": "evacuation_bus",
+    "location": { "lat": 47.642, "lng": -122.155 },
+    "status": "Needs Maintenance",
+    "capacity": {
+      "seats": 52,
+      "fuel_pct": 41
+    },
+    "lastUpdated": "2026-09-06T14:22:00Z"
+  },
+  {
+    "id": "generator_05",
+    "type": "generator",
+    "location": { "lat": 47.676, "lng": -122.111 },
+    "status": "Offline",
+    "capacity": {
+      "output_kw": 85,
+      "fuel_hours": 9
+    },
+    "lastUpdated": "2026-09-06T14:22:00Z"
+  },
+  {
+    "id": "firstaid_12",
+    "type": "first_aid_kit",
+    "location": { "lat": 47.689, "lng": -122.097 },
+    "status": "Available",
+    "capacity": {
+      "kits": 40,
+      "trauma_kits": 10
+    },
+    "lastUpdated": "2026-09-06T14:22:00Z"
+  },
+  {
+    "id": "shelter_supply_04",
+    "type": "shelter_supply",
+    "location": { "lat": 47.661, "lng": -122.136 },
+    "status": "In Use",
+    "capacity": {
+      "meal_packs": 600,
+      "blankets": 320
+    },
+    "lastUpdated": "2026-09-06T14:22:00Z"
+  }
+]

@@ -1,13 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { BellRing, Flame, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { BellRing, Check, Flame, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { RateOfRiseChart } from "@/components/RateOfRiseChart";
 import {
   DEFAULT_THRESHOLDS,
   SEVERITY_STYLE,
   evaluateAlerts,
   generateRateOfRise,
-  generateReadings,
   nearestStation,
   type AlertThresholds,
   type RorPoint,
@@ -15,6 +14,8 @@ import {
   type SensorReading,
 } from "@/lib/sensors";
 import { UnitToggle } from "@/components/UnitToggle";
+import { AppNav } from "@/components/AppNav";
+import { feedLabel, useFieldData } from "@/lib/field-data";
 import {
   formatRate,
   formatTemp,
@@ -49,22 +50,16 @@ export const Route = createFileRoute("/alerts")({
 });
 
 function AlertsPage() {
-  const [sensors, setSensors] = useState<SensorReading[]>([]);
+  const { sensors, liveSensors, updatedAt, demoMesh } = useFieldData();
   const [ror, setRor] = useState<RorPoint[]>([]);
-  const [updatedAt, setUpdatedAt] = useState("");
   const [thresholds, setThresholds] = useState<AlertThresholds>(DEFAULT_THRESHOLDS);
   const [armed, setArmed] = useState(true);
+  // Luke's acknowledge flow: crews mark an alarm as seen; it stays listed until cleared.
+  const [acknowledged, setAcknowledged] = useState<Set<string>>(new Set());
   const { system } = useUnits();
 
   useEffect(() => {
-    const tick = () => {
-      setSensors(generateReadings());
-      setUpdatedAt(new Date().toLocaleTimeString());
-    };
     setRor(generateRateOfRise());
-    tick();
-    const id = window.setInterval(tick, 5000);
-    return () => window.clearInterval(id);
   }, []);
 
   const alerts = useMemo(
@@ -85,7 +80,7 @@ function AlertsPage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="label-eyebrow flex items-center gap-2">
-            <span className="live-dot" /> Threshold monitor · simulated feed
+            <span className="live-dot" /> Threshold monitor · {feedLabel(liveSensors.length, demoMesh)}
           </p>
           <h1 className="mt-2 flex items-center gap-3 text-4xl font-semibold md:text-5xl">
             <BellRing className="size-8 text-primary" aria-hidden />
@@ -95,17 +90,7 @@ function AlertsPage() {
             Nothing sounds until a node breaches a parameter. Alarms are raised the moment
             temperature, humidity, rate of rise or composite risk crosses the values set below.
           </p>
-          <nav className="mt-4 flex gap-2">
-            <Link
-              to="/"
-              className="rounded-full border border-border px-3 py-1 font-display text-xs tracking-[0.14em] uppercase text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Console
-            </Link>
-            <span className="rounded-full bg-primary px-3 py-1 font-display text-xs tracking-[0.14em] uppercase text-primary-foreground">
-              Alerts
-            </span>
-          </nav>
+          <AppNav />
         </div>
         <div className="flex flex-col items-end gap-3">
           <UnitToggle />
@@ -214,6 +199,8 @@ function AlertsPage() {
                 alert={alert}
                 sensors={sensors}
                 thresholds={thresholds}
+                acknowledged={acknowledged.has(alert.id)}
+                onAcknowledge={() => setAcknowledged((prev) => new Set(prev).add(alert.id))}
               />
             ))}
           </ul>
@@ -221,8 +208,8 @@ function AlertsPage() {
       </section>
 
       <footer className="mt-8 text-xs text-muted-foreground">
-        Readings are simulated for demonstration. Connect field Raspberry Pi units to alarm on real
-        telemetry.
+        Statewide mesh readings are simulated for demonstration. Live Raspberry Pi nodes alarm on
+        real telemetry against the same thresholds.
       </footer>
     </main>
   );
@@ -254,10 +241,14 @@ function AlertCard({
   alert,
   sensors,
   thresholds,
+  acknowledged,
+  onAcknowledge,
 }: {
   alert: SensorAlert;
   sensors: SensorReading[];
   thresholds: AlertThresholds;
+  acknowledged: boolean;
+  onAcknowledge: () => void;
 }) {
   const { system } = useUnits();
   const sensor = sensors.find((s) => s.id === alert.sensorId);
@@ -267,7 +258,7 @@ function AlertCard({
 
   return (
     <li
-      className="panel p-4"
+      className={`panel p-4 ${acknowledged ? "opacity-60" : ""}`}
       style={{ borderLeft: `3px solid var(--color-${style.token})` }}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -289,6 +280,21 @@ function AlertCard({
         <Cell label="Risk score" value={String(alert.riskScore)} />
         <Cell label="Nearest unit" value={station ? station.city : "—"} />
       </dl>
+      <div className="mt-3 flex justify-end">
+        {acknowledged ? (
+          <span className="inline-flex items-center gap-1 font-display text-xs tracking-[0.14em] text-muted-foreground uppercase">
+            <Check className="size-3" aria-hidden /> Acknowledged
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={onAcknowledge}
+            className="rounded-full border border-border px-3 py-1 font-display text-xs tracking-[0.14em] uppercase transition-colors hover:bg-surface-raised"
+          >
+            Acknowledge
+          </button>
+        )}
+      </div>
     </li>
   );
 }

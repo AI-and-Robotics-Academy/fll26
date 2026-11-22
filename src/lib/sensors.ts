@@ -18,6 +18,10 @@ export interface SensorReading {
   batteryPct: number;
   online: boolean;
   lastSeenSecondsAgo: number;
+  /** "sim" = simulated demo mesh, "live" = real Raspberry Pi telemetry. */
+  source?: "sim" | "live";
+  /** Second humidity probe (Luke's air-moisture sensor), when the Pi sends one. */
+  airHumidityPct?: number;
 }
 
 export interface RiskAssessment {
@@ -136,6 +140,7 @@ export function generateReadings(): SensorReading[] {
       batteryPct: 62 + Math.round(jitter(30)) + 15,
       online,
       lastSeenSecondsAgo: online ? Math.round(Math.random() * 45) : 1420,
+      source: "sim" as const,
     };
   });
 }
@@ -186,6 +191,9 @@ export const FIRE_STATIONS: FireStation[] = [
   { id: "ST-COL", name: "Colville Fire Dept.", city: "Colville", lat: 48.5457, lng: -117.9052 },
   { id: "ST-SPO", name: "Spokane Valley Fire District 8", city: "Spokane Valley", lat: 47.6588, lng: -117.2394 },
   { id: "ST-RAN", name: "Cowlitz 2 Fire & Rescue", city: "Randle", lat: 46.5321, lng: -122.0053 },
+  // Eastside stations near the team's live Raspberry Pi nodes (approximate locations).
+  { id: "ST-BEL", name: "Bellevue Fire Station 1", city: "Bellevue", lat: 47.6087, lng: -122.2007 },
+  { id: "ST-RED", name: "Redmond Fire Station 11", city: "Redmond", lat: 47.6762, lng: -122.1213 },
 ];
 
 const R_EARTH_KM = 6371;

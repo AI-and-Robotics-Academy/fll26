@@ -12,7 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as DevicesRouteImport } from './routes/devices'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ResourcesRouteImport } from './routes/resources'
+import { Route as ApiDevicesIndexRouteImport } from './routes/api/devices/index'
+import { Route as ApiDevicesDeviceIdTelemetryRouteImport } from './routes/api/devices/$deviceId/telemetry'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,44 +33,106 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevicesRoute = DevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResourcesRoute = ResourcesRouteImport.update({
+  id: '/resources',
+  path: '/resources',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDevicesIndexRoute = ApiDevicesIndexRouteImport.update({
+  id: '/api/devices/',
+  path: '/api/devices/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDevicesDeviceIdTelemetryRoute =
+  ApiDevicesDeviceIdTelemetryRouteImport.update({
+    id: '/api/devices/$deviceId/telemetry',
+    path: '/api/devices/$deviceId/telemetry',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/auth': typeof AuthRoute
+  '/devices': typeof DevicesRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/resources': typeof ResourcesRoute
+  '/api/devices/': typeof ApiDevicesIndexRoute
+  '/api/devices/$deviceId/telemetry': typeof ApiDevicesDeviceIdTelemetryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/auth': typeof AuthRoute
+  '/devices': typeof DevicesRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/resources': typeof ResourcesRoute
+  '/api/devices': typeof ApiDevicesIndexRoute
+  '/api/devices/$deviceId/telemetry': typeof ApiDevicesDeviceIdTelemetryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/alerts': typeof AlertsRoute
   '/auth': typeof AuthRoute
+  '/devices': typeof DevicesRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/resources': typeof ResourcesRoute
+  '/api/devices/': typeof ApiDevicesIndexRoute
+  '/api/devices/$deviceId/telemetry': typeof ApiDevicesDeviceIdTelemetryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/alerts' | '/auth' | '/reset-password'
+  fullPaths:
+    | '/'
+    | '/alerts'
+    | '/auth'
+    | '/devices'
+    | '/reset-password'
+    | '/resources'
+    | '/api/devices/'
+    | '/api/devices/$deviceId/telemetry'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/alerts' | '/auth' | '/reset-password'
-  id: '__root__' | '/' | '/alerts' | '/auth' | '/reset-password'
+  to:
+    | '/'
+    | '/alerts'
+    | '/auth'
+    | '/devices'
+    | '/reset-password'
+    | '/resources'
+    | '/api/devices'
+    | '/api/devices/$deviceId/telemetry'
+  id:
+    | '__root__'
+    | '/'
+    | '/alerts'
+    | '/auth'
+    | '/devices'
+    | '/reset-password'
+    | '/resources'
+    | '/api/devices/'
+    | '/api/devices/$deviceId/telemetry'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlertsRoute: typeof AlertsRoute
   AuthRoute: typeof AuthRoute
+  DevicesRoute: typeof DevicesRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ResourcesRoute: typeof ResourcesRoute
+  ApiDevicesIndexRoute: typeof ApiDevicesIndexRoute
+  ApiDevicesDeviceIdTelemetryRoute: typeof ApiDevicesDeviceIdTelemetryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -92,11 +158,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/devices': {
+      id: '/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof DevicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/resources': {
+      id: '/resources'
+      path: '/resources'
+      fullPath: '/resources'
+      preLoaderRoute: typeof ResourcesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/devices/': {
+      id: '/api/devices/'
+      path: '/api/devices'
+      fullPath: '/api/devices/'
+      preLoaderRoute: typeof ApiDevicesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/devices/$deviceId/telemetry': {
+      id: '/api/devices/$deviceId/telemetry'
+      path: '/api/devices/$deviceId/telemetry'
+      fullPath: '/api/devices/$deviceId/telemetry'
+      preLoaderRoute: typeof ApiDevicesDeviceIdTelemetryRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -106,7 +200,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlertsRoute: AlertsRoute,
   AuthRoute: AuthRoute,
+  DevicesRoute: DevicesRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ResourcesRoute: ResourcesRoute,
+  ApiDevicesIndexRoute: ApiDevicesIndexRoute,
+  ApiDevicesDeviceIdTelemetryRoute: ApiDevicesDeviceIdTelemetryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

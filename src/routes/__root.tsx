@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { UnitsProvider } from "../lib/units";
+import { FieldDataProvider } from "../lib/field-data";
+import { FireWatchAI } from "../components/FireWatchAI";
 
 function NotFoundComponent() {
   return (
@@ -133,8 +135,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <UnitsProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        <FieldDataProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <FireWatchAI />
+        </FieldDataProvider>
       </UnitsProvider>
     </QueryClientProvider>
   );

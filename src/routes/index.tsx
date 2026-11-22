@@ -1,6 +1,15 @@
-import { createFileRoute, ClientOnly, Link } from "@tanstack/react-router";
+import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, BellRing, Droplets, Flame, Navigation, Radio, Satellite, Thermometer } from "lucide-react";
+import {
+  Activity,
+  Droplets,
+  Flame,
+  Navigation,
+  Radio,
+  Satellite,
+  Thermometer,
+  Truck,
+} from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   getResponseRoute,
@@ -13,9 +22,7 @@ import { RateOfRiseChart } from "@/components/RateOfRiseChart";
 import {
   HEAT_BANDS,
   assessRisk,
-  generateReadings,
   distanceKm,
-  evaluateAlerts,
   generateRateOfRise,
   generateTrend,
   nearestStation,
@@ -24,6 +31,14 @@ import {
   type SensorReading,
   type TrendPoint,
 } from "@/lib/sensors";
+import { AppNav } from "@/components/AppNav";
+import {
+  feedLabel,
+  nearestAvailableResources,
+  resourceLabel,
+  useFieldData,
+  type Resource,
+} from "@/lib/field-data";
 import { UnitToggle } from "@/components/UnitToggle";
 import { ZoneCard } from "@/components/ZoneCard";
 import { Button } from "@/components/ui/button";
@@ -65,29 +80,23 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
-  // Initialize empty to avoid SSR hydration mismatch from random telemetry.
-  const [sensors, setSensors] = useState<SensorReading[]>([]);
+  // Shared feed: simulated mesh + live Raspberry Pi nodes + Shivi's resources.
+  const { sensors, liveSensors, resources, updatedAt, demoMesh } = useFieldData();
   const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [ror, setRor] = useState<RorPoint[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<string>("");
   const [layer, setLayer] = useState<"heat" | "risk" | "zones">("heat");
   const [showStations, setShowStations] = useState(true);
+  const [showResources, setShowResources] = useState(true);
   const [route, setRoute] = useState<ResponseRoute | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const fetchRoute = useServerFn(getResponseRoute);
   const { system } = useUnits();
 
+  // Generated after mount to avoid SSR hydration mismatch from random data.
   useEffect(() => {
-    const tick = () => {
-      setSensors(generateReadings());
-      setUpdatedAt(new Date().toLocaleTimeString());
-    };
     setTrend(generateTrend());
     setRor(generateRateOfRise());
-    tick();
-    const id = window.setInterval(tick, 5000);
-    return () => window.clearInterval(id);
   }, []);
 
   const online = sensors.filter((s) => s.online);
@@ -100,8 +109,6 @@ function Dashboard() {
     const worst = scores.reduce((a, b) => (b.score > a.score ? b : a));
     return { avgTemp, avgHum, avgRor, worst, peak: worst.score };
   }, [online]);
-
-  const activeAlerts = useMemo(() => evaluateAlerts(sensors).length, [sensors]);
 
   const selected = sensors.find((s) => s.id === selectedId) ?? null;
   const station: FireStation | null = selected ? nearestStation(selected) : null;
@@ -157,7 +164,7 @@ function Dashboard() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="label-eyebrow flex items-center gap-2">
-            <span className="live-dot" /> Live sensor mesh · simulated feed
+            <span className="live-dot" /> Live sensor mesh · {feedLabel(liveSensors.length, demoMesh)}
           </p>
           <h1 className="mt-2 flex items-center gap-3 text-4xl font-semibold md:text-5xl">
             <Flame className="size-8 text-primary" aria-hidden />
@@ -168,23 +175,7 @@ function Dashboard() {
             temperature and humidity nodes across the Cascades and eastern shrub-steppe, composite
             risk scoring, and live topography.
           </p>
-          <nav className="mt-4 flex gap-2">
-            <span className="rounded-full bg-primary px-3 py-1 font-display text-xs tracking-[0.14em] uppercase text-primary-foreground">
-              Console
-            </span>
-            <Link
-              to="/alerts"
-              className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 font-display text-xs tracking-[0.14em] uppercase text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <BellRing className="size-3" aria-hidden />
-              Alerts
-              {activeAlerts > 0 && (
-                <span className="rounded-full bg-risk-extreme px-1.5 font-mono text-[0.65rem] text-background">
-                  {activeAlerts}
-                </span>
-              )}
-            </Link>
-          </nav>
+          <AppNav />
 
         </div>
         <div className="flex flex-col items-end gap-3">
@@ -270,6 +261,19 @@ function Dashboard() {
                 Stations
               </Button>
             )}
+            {layer !== "zones" && (
+              <Button
+                type="button"
+                onClick={() => setShowResources((v) => !v)}
+                aria-pressed={showResources}
+                variant="outline"
+                size="sm"
+                className={showResources ? "bg-accent text-accent-foreground" : "text-muted-foreground"}
+              >
+                <Truck className="size-3" aria-hidden />
+                Resources
+              </Button>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-2">
             {layer === "heat" ? (
@@ -326,6 +330,7 @@ function Dashboard() {
                     routePolyline={route?.polyline ?? null}
                     dispatchStation={station}
                     showStations={showStations}
+                    resources={showResources ? resources : []}
                   />
                 </Suspense>
               </ClientOnly>
@@ -393,6 +398,7 @@ function Dashboard() {
                 station={station}
                 route={route}
                 loading={routeLoading}
+                resources={resources}
               />
             </>
           ) : (
@@ -404,8 +410,8 @@ function Dashboard() {
       </section>
 
       <footer className="mt-8 text-xs text-muted-foreground">
-        Readings shown are simulated for demonstration. Connect field Raspberry Pi units to stream
-        real telemetry.
+        Statewide mesh readings are simulated for demonstration. Nodes ringed in white are live
+        Raspberry Pi units streaming real telemetry — connect one from the Devices page.
       </footer>
     </main>
   );
@@ -437,6 +443,10 @@ function SensorDetail({ sensor }: { sensor: SensorReading }) {
         <Detail label="Battery" value={`${Math.min(100, sensor.batteryPct)} %`} />
         <Detail label="Trend" value={formatRate(sensor.tempTrendFPerHr, system)} />
         <Detail label="Last seen" value={`${sensor.lastSeenSecondsAgo}s ago`} />
+        {sensor.airHumidityPct !== undefined && (
+          <Detail label="Air humidity" value={`${sensor.airHumidityPct} %`} />
+        )}
+        <Detail label="Source" value={sensor.source === "live" ? "Live Pi" : "Simulated"} />
       </dl>
       <div className="space-y-2">
         <p className="label-eyebrow">Risk drivers</p>
@@ -464,11 +474,13 @@ function DispatchPanel({
   station,
   route,
   loading,
+  resources,
 }: {
   sensor: SensorReading;
   station: FireStation | null;
   route: ResponseRoute | null;
   loading: boolean;
+  resources: Resource[];
 }) {
   const { system } = useUnits();
   if (!station) return null;
@@ -498,6 +510,38 @@ function DispatchPanel({
             ? "Blue line shows the fastest road route to this node."
             : `Straight-line bearing shown${route?.error ? ` — ${route.error}` : ""}.`}
       </p>
+      <NearestResources sensor={sensor} resources={resources} />
+    </div>
+  );
+}
+
+/** Shivi's resource tracker feeding dispatch: closest assets ready to roll. */
+function NearestResources({ sensor, resources }: { sensor: SensorReading; resources: Resource[] }) {
+  const { system } = useUnits();
+  const nearest = nearestAvailableResources(sensor, resources);
+  return (
+    <div className="mt-4">
+      <p className="label-eyebrow flex items-center gap-2 text-accent">
+        <Truck className="size-3.5" aria-hidden />
+        Closest ready resources
+      </p>
+      {nearest.length === 0 ? (
+        <p className="mt-2 text-xs text-muted-foreground">No available resources right now.</p>
+      ) : (
+        <ul className="mt-2 space-y-1.5 text-sm">
+          {nearest.map(({ resource, km }) => (
+            <li key={resource.id} className="flex items-center justify-between gap-2">
+              <span className="truncate capitalize">
+                {resourceLabel(resource.type)}{" "}
+                <span className="font-mono text-xs text-muted-foreground">{resource.id}</span>
+              </span>
+              <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                {formatDistanceFromKm(km, system)} · {resource.status}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

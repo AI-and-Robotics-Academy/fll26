@@ -1,26 +1,67 @@
-# Fire Watch Tower
+# WildGuard — FLL 2026 Team Bellevue
 
-I want to build an app for firefighters that will help them with wildfire prevention and detection using Raspery Pi sensors.  The fire fighters will need to see temperature, humidity and live topogrpahy mapping.
+One app for wildfire prevention and early warning, built from the best feature of
+each teammate's app. Firefighters see live temperature, humidity and fire risk
+from Raspberry Pi sensors on a topography map, get alarms when a threshold is
+crossed, and know which crews and equipment are closest.
 
-This project was built with [Lovable](https://lovable.dev).
+See [TEAM.md](TEAM.md) for who built what and a 2-minute judge demo.
 
-**Live app**: https://fire-guardian-heartbeat.lovable.app
+| Page | What it does |
+| --- | --- |
+| `/` Console | Heat / risk / zone map, nodes ranked by risk, rate-of-rise chart, dispatch route + closest resources |
+| `/alerts` | Threshold alarms with adjustable limits and Acknowledge |
+| `/resources` | Live tracker for tankers, engines, ambulances, buses and supplies |
+| `/devices` | Live Raspberry Pi nodes, test readings, how to connect a Pi |
+| Ask FireWatch AI | Helper on every page that answers from the live readings |
 
-## Build with Lovable
+## Run it
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/43876407-4725-4dac-8072-39d0f80cdd12).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Needs Node.js 22+.
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+npm install
+npm run dev               # http://localhost:8080
 ```
+
+To let a Raspberry Pi on the same Wi‑Fi send readings:
+
+```sh
+npm run dev -- --host 0.0.0.0
+```
+
+Then follow [hardware/raspberry-pi/README.md](hardware/raspberry-pi/README.md).
+
+### Optional settings (server environment variables)
+
+| Variable | Purpose |
+| --- | --- |
+| `OPENAI_API_KEY` | Full AI answers. Without it the helper answers from the readings with built-in rules. |
+| `FIREWATCH_AI_MODEL` | OpenAI model (default `gpt-5-mini`) |
+| `FIREWATCH_INGEST_TOKEN` | Require this token from every Pi (`X-FireWatch-Token` header) |
+| `VITE_WILDGUARD_MAP=osm` | Always use the free OpenTopoMap map instead of Google Maps |
+
+Never put keys in code or commit them. Set them in the terminal before
+`npm run dev`, e.g. `export OPENAI_API_KEY=...`.
+
+### Good to know
+
+- **Maps**: Google Maps terrain is used when its key allows the site. On a
+  laptop (`localhost`) the Lovable key is refused, so the app switches to the
+  free OpenTopoMap contour map on its own.
+- **Live Pi data** is kept in server memory: it resets when the server restarts
+  and is meant for a laptop running `npm run dev`, not the hosted Lovable site.
+- **Simulated mesh**: the statewide sensors are simulated for the demo. Turn
+  them off on the Devices page to show only real hardware.
+
+## Repository layout
+
+```
+src/                      WildGuard master app (TanStack Start + React)
+hardware/raspberry-pi/    Pi sensor scripts (Luke)
+contributions/            Pen-drive drop zone for teammates new to GitHub
+archive/firewatch-flask/  Original FireWatch Flask app (Luke + Shivi), for reference
+```
+
+Built with [Lovable](https://lovable.dev). Project editor:
+https://lovable.dev/projects/43876407-4725-4dac-8072-39d0f80cdd12

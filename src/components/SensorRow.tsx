@@ -31,6 +31,11 @@ export function SensorRow({
         <div className="min-w-0">
           <p className="truncate font-display text-base tracking-wide">
             <span className="text-muted-foreground">{sensor.id}</span> {sensor.name}
+            {sensor.source === "live" && (
+              <span className="ml-2 rounded-full bg-risk-low/20 px-1.5 py-0.5 align-middle font-mono text-[0.6rem] tracking-normal text-risk-low">
+                LIVE
+              </span>
+            )}
           </p>
           <p className="truncate text-xs text-muted-foreground">{sensor.zone}</p>
         </div>
