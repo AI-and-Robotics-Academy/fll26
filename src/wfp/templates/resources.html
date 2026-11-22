@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FireWatch - Resource Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="{{ url_for('static', filename='resources.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="home-link" href="/">FireWatch Dashboard</a>
+    <h1>Resource Tracker</h1>
+    <span class="live-pill">Live updates every 10s</span>
+  </header>
+
+  <main class="resource-layout">
+    <section class="resource-list-panel">
+      <div class="panel-head">
+        <p class="eyebrow">Emergency assets</p>
+        <h2>Resource List</h2>
+      </div>
+      <div id="resourceList" class="resource-list" aria-label="Resource list"></div>
+    </section>
+
+    <section class="map-panel">
+      <div class="panel-head">
+        <p class="eyebrow">Field map</p>
+        <h2>Map View</h2>
+      </div>
+      <div id="resourceMap" class="resource-map" aria-label="Resource map"></div>
+    </section>
+
+    <aside class="detail-drawer" id="resourceDrawer" aria-live="polite">
+      <div id="drawerEmpty" class="drawer-empty">
+        <p>Select a resource to view details.</p>
+      </div>
+      <div id="drawerContent" class="drawer-content hidden">
+        <p class="eyebrow" id="resourceType"></p>
+        <h3 id="resourceId"></h3>
+        <span id="resourceStatus" class="status-badge"></span>
+        <p class="coord" id="resourceCoord"></p>
+        <h4>Capacity</h4>
+        <ul id="resourceCapacity"></ul>
+        <p class="last-update">Last updated: <span id="resourceUpdated"></span></p>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    window.RESOURCE_DATA = {{ resources|tojson }};
+  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="{{ url_for('static', filename='resources.js') }}"></script>
+</body>
+</html>
