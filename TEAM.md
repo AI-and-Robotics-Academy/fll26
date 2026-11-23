@@ -5,7 +5,7 @@ teammate's original commits are preserved in git history.
 
 | Teammate | Original work | Where it lives in the master app | Status |
 | --- | --- | --- | --- |
-| **Smarna** | WildGuard console (Lovable): heat/risk/zones map, rate-of-rise chart, threshold alerts, °F/°C toggle, fire-station routing, sign-in (`main`, `feature/smarna-role-views_v2`) | Base of the master app — `/`, `/alerts`, `/auth` | Merged. Role views (`feature/smarna-role-views`) has no commits yet |
+| **Smarna** | WildGuard console (Lovable): heat/risk/zones map, rate-of-rise chart, threshold alerts, °F/°C toggle, fire-station routing, sign-in (`main`, `feature/smarna-role-views_v2`) | Base of the master app — `/console`, `/alerts`, `/auth`. Her firefighter / resident demo buttons grew into full role views: public home page, citizen "My area", firefighter-only command center | Merged |
 | **Luke** | FireWatch: Raspberry Pi telemetry API, GPIO sensor scripts, AI helper, alert acknowledge, public tunnel (`feature/luke-pi-telemetry`) | `/api/devices/*`, `/devices`, LIVE map markers, "Ask FireWatch AI", Acknowledge button, `hardware/raspberry-pi/` | Merged |
 | **Shivi** | Resource tracker: tankers, trucks, ambulances, buses, supplies with live simulation (`feature/shivi-resource-tracker`) | `/resources`, resources layer on the console map, "Closest ready resources" in dispatch | Merged |
 | **Viren** | Wildfire Watch (Base44 app; rebuilt from his feature list since it couldn't be exported) | Risk gauge, wind + soil moisture in the risk engine, AI situation briefing, `/readings` log, device registry + 15-minute online rule on `/devices`, Pi bridge script (`hardware/raspberry-pi/wildguard_bridge.py`), `/intel` Area Intelligence with spread prediction, fire lines, truck / drone / helicopter GPS and NOTAM | Merged |
@@ -26,6 +26,10 @@ Shivi's resources ───────┼──► FieldDataProvider (one share
 
 ## 2-minute judge demo
 
+0. **Home page (no login)**: pick a town; show the 4 public cards. "Anyone can
+   check fire danger near them." Then **Demo citizen** → *My area* → send a
+   smoke report. Sign out, **Demo firefighter** → *Alerts* shows the report →
+   *Acknowledge* (the citizen sees "Seen by crews ✓").
 1. **Console**: "Our mesh scores fire risk from heat, dryness and how fast
    temperature is rising." Click the top node to show risk drivers, the route
    from the nearest station, and the closest ready resources.

@@ -1,4 +1,5 @@
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
+import { RequireRole } from "@/components/RequireRole";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Suspense,
@@ -55,7 +56,7 @@ export const Route = createFileRoute("/intel")({
       },
     ],
   }),
-  component: IntelPage,
+  component: GuardedIntelPage,
 });
 
 interface Origin {
@@ -659,5 +660,13 @@ function MapNote({ text }: { text: string }) {
     <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
       {text}
     </div>
+  );
+}
+
+function GuardedIntelPage() {
+  return (
+    <RequireRole roles={["firefighter"]}>
+      <IntelPage />
+    </RequireRole>
   );
 }

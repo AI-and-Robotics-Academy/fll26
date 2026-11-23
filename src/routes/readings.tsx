@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RequireRole } from "@/components/RequireRole";
 import { useEffect, useState } from "react";
 import { ScrollText } from "lucide-react";
 import { AppNav } from "@/components/AppNav";
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/readings")({
       },
     ],
   }),
-  component: ReadingsPage,
+  component: GuardedReadingsPage,
 });
 
 const POLL_MS = 5000;
@@ -171,5 +172,13 @@ function ReadingsPage() {
         single packet has no trend.
       </p>
     </main>
+  );
+}
+
+function GuardedReadingsPage() {
+  return (
+    <RequireRole roles={["firefighter"]}>
+      <ReadingsPage />
+    </RequireRole>
   );
 }

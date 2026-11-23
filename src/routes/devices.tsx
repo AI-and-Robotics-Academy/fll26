@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RequireRole } from "@/components/RequireRole";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/devices")({
       },
     ],
   }),
-  component: DevicesPage,
+  component: GuardedDevicesPage,
 });
 
 // Default test-bench location: Bellevue, WA (the team's home base).
@@ -512,5 +513,13 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <span className="label-eyebrow block">{label}</span>
       {children}
     </label>
+  );
+}
+
+function GuardedDevicesPage() {
+  return (
+    <RequireRole roles={["firefighter"]}>
+      <DevicesPage />
+    </RequireRole>
   );
 }

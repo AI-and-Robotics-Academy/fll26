@@ -4,6 +4,7 @@ import { Send, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { askFireWatchAI, buildFieldContext, type ChatTurn } from "@/lib/ai.functions";
 import { useFieldData } from "@/lib/field-data";
+import { useAuth } from "@/lib/demo-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -25,14 +26,15 @@ export function FireWatchAI() {
     },
   ]);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const { user } = useAuth();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
   }, [messages, open]);
 
-  // Sign-in screens stay clean.
-  if (pathname === "/auth" || pathname === "/reset-password") return null;
+  // Crew-only helper: it sees exact sensor data, alerts and resources.
+  if (user?.role !== "firefighter" || pathname === "/auth") return null;
 
   async function submit(event: FormEvent) {
     event.preventDefault();

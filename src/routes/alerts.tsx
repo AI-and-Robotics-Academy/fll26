@@ -1,4 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RequireRole } from "@/components/RequireRole";
+import { useServerFn } from "@tanstack/react-start";
+import { Megaphone } from "lucide-react";
+import { ackReport, getReports } from "@/lib/reports.functions";
+import type { CitizenReport } from "@/lib/reports.server";
 import { useEffect, useMemo, useState } from "react";
 import { BellRing, Check, Flame, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { RateOfRiseChart } from "@/components/RateOfRiseChart";
@@ -46,7 +51,7 @@ export const Route = createFileRoute("/alerts")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: AlertsPage,
+  component: GuardedAlertsPage,
 });
 
 function AlertsPage() {
@@ -118,6 +123,8 @@ function AlertsPage() {
         <Tally label="Warning" value={counts.warning} accent="text-risk-high" />
         <Tally label="Watch" value={counts.watch} accent="text-risk-moderate" />
       </section>
+
+      <CitizenReports />
 
       <section className="mt-6 panel p-5">
         <h2 className="flex items-center gap-2 text-xl">
@@ -345,5 +352,93 @@ function Slider({
         className="mt-2 w-full accent-[var(--color-primary)]"
       />
     </label>
+  );
+}
+
+function GuardedAlertsPage() {
+  return (
+    <RequireRole roles={["firefighter"]}>
+      <AlertsPage />
+    </RequireRole>
+  );
+}
+
+/** Smoke and fire reports sent by citizens from "My area". */
+function CitizenReports() {
+  const list = useServerFn(getReports);
+  const ack = useServerFn(ackReport);
+  const [reports, setReports] = useState<CitizenReport[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const all = await list();
+        if (!cancelled) setReports(all);
+      } catch {
+        /* offline */
+      }
+    };
+    void load();
+    const id = window.setInterval(load, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [list]);
+
+  const open = reports.filter((r) => !r.acknowledged).length;
+  return (
+    <section className="mt-6 panel p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-xl">
+          <Megaphone className="size-4 text-risk-high" aria-hidden />
+          Citizen reports
+        </h2>
+        <span className="text-xs text-muted-foreground">
+          {reports.length ? `${open} new · ${reports.length} total` : "None yet"}
+        </span>
+      </div>
+      {reports.length === 0 ? (
+        <p className="mt-2 text-sm text-muted-foreground">
+          Smoke and fire reports from citizens' "My area" page appear here.
+        </p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {reports.slice(0, 8).map((r) => (
+            <li
+              key={r.id}
+              className={`flex flex-wrap items-center gap-3 rounded-lg border border-border p-3 text-sm ${r.acknowledged ? "opacity-60" : ""}`}
+              style={{ borderLeft: `3px solid var(--color-${r.kind === "flames" ? "risk-extreme" : "risk-high"})` }}
+            >
+              <span className="font-display tracking-[0.14em] uppercase">{r.kind}</span>
+              <span>
+                {r.place} · <span className="font-mono text-xs">{r.lat}, {r.lng}</span>
+              </span>
+              {r.note && <span className="text-muted-foreground">“{r.note}”</span>}
+              <span className="text-xs text-muted-foreground">
+                {r.reporter} · {new Date(r.createdAt).toLocaleTimeString()}
+              </span>
+              <span className="ml-auto">
+                {r.acknowledged ? (
+                  <span className="text-xs text-risk-low">Acknowledged</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await ack({ data: { id: r.id } });
+                      setReports(await list());
+                    }}
+                    className="rounded-full border border-border px-3 py-1 font-display text-xs tracking-[0.14em] uppercase hover:bg-surface-raised"
+                  >
+                    Acknowledge
+                  </button>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

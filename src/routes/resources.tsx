@@ -1,4 +1,5 @@
 import { ClientOnly, createFileRoute } from "@tanstack/react-router";
+import { RequireRole } from "@/components/RequireRole";
 import { Suspense, lazy, useMemo, useState } from "react";
 import { MapPin, Truck } from "lucide-react";
 import { AppNav } from "@/components/AppNav";
@@ -33,7 +34,7 @@ export const Route = createFileRoute("/resources")({
       },
     ],
   }),
-  component: ResourcesPage,
+  component: GuardedResourcesPage,
 });
 
 function ResourcesPage() {
@@ -269,5 +270,13 @@ function MapSkeleton() {
     <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
       Loading map…
     </div>
+  );
+}
+
+function GuardedResourcesPage() {
+  return (
+    <RequireRole roles={["firefighter"]}>
+      <ResourcesPage />
+    </RequireRole>
   );
 }
