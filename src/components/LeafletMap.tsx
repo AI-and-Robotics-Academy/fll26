@@ -50,7 +50,12 @@ interface LMap {
   invalidateSize(): this;
   remove(): void;
 }
+interface LLayerGroup extends LLayer {
+  clearLayers(): this;
+  addLayer(layer: LLayer): this;
+}
 interface LeafletNS {
+  layerGroup(): LLayerGroup;
   map(el: HTMLElement, opts?: Record<string, unknown>): LMap;
   tileLayer(url: string, opts?: Record<string, unknown>): LLayer;
   marker(p: LatLng, opts?: Record<string, unknown>): LMarker;
@@ -101,6 +106,7 @@ export default function LeafletMap({
   selectedResourceId = null,
   onSelectResource,
   fitTo,
+  spread = null,
 }: MapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LMap | null>(null);
@@ -109,6 +115,7 @@ export default function LeafletMap({
   const stationMarkers = useRef<Map<string, LMarker>>(new Map());
   const resourceMarkers = useRef<Map<string, LMarker>>(new Map());
   const routeLine = useRef<LPolyline | null>(null);
+  const spreadLayer = useRef<LLayerGroup | null>(null);
   const selectRef = useRef(onSelect);
   selectRef.current = onSelect;
   const selectResourceRef = useRef(onSelectResource);
@@ -241,6 +248,65 @@ export default function LeafletMap({
     }
   }, [ready, resources, selectedResourceId]);
 
+  // Area Intelligence overlay: origin, projected run, impact circle, fire lines, routes.
+  useEffect(() => {
+    const map = mapRef.current;
+    const L = LRef.current;
+    if (!ready || !map || !L) return;
+    spreadLayer.current ??= L.layerGroup().addTo(map);
+    const group = spreadLayer.current;
+    group.clearLayers();
+    if (!spread) return;
+    const add = <T extends LLayer>(layer: T) => {
+      group.addLayer(layer);
+      return layer;
+    };
+    add(
+      L.circle(spread.impactCenter, {
+        radius: spread.impactRadiusKm * 1000,
+        color: "#e3452f",
+        fillColor: "#e3452f",
+        fillOpacity: 0.15,
+        weight: 1,
+        interactive: false,
+      }),
+    );
+    add(
+      L.polyline([spread.origin, spread.head], {
+        color: "#e3452f",
+        weight: 4,
+        dashArray: "2 8",
+        interactive: false,
+      }),
+    );
+    for (const line of spread.fireLines) {
+      add(
+        L.polyline([line.station, line.position], {
+          color: "#2f7fd4",
+          weight: 2,
+          opacity: 0.8,
+          dashArray: "6 6",
+          interactive: false,
+        }),
+      );
+      add(
+        L.marker(line.position, {
+          icon: icon(L, fireLineSvg(line.id === "anchor"), 26),
+          zIndexOffset: 800,
+        }).bindTooltip(`${line.name} · ${line.position.lat}, ${line.position.lng}`),
+      );
+    }
+    add(
+      L.marker(spread.origin, { icon: icon(L, originSvg(), 34), zIndexOffset: 900 }).bindTooltip(
+        `Fire origin · spreading ${spread.headingLabel}`,
+      ),
+    );
+    map.fitBounds([spread.origin, spread.head, ...spread.fireLines.map((l) => l.position)], {
+      padding: [50, 50],
+      maxZoom: 14,
+    });
+  }, [ready, spread]);
+
   // Dispatch route.
   useEffect(() => {
     const map = mapRef.current;
@@ -292,4 +358,19 @@ export default function LeafletMap({
       aria-label="Live topography map (OpenTopoMap)"
     />
   );
+}
+
+function originSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">
+    <circle cx="17" cy="17" r="15" fill="#e3452f" fill-opacity="0.25"/>
+    <path d="M17 6c2 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-4 3-6 0 2 1 3 2 3 0-3-1-5 1-8z" fill="#e3452f" stroke="#12100e" stroke-width="1.2"/>
+  </svg>`;
+}
+
+function fireLineSvg(anchor: boolean) {
+  const color = anchor ? "#3ec7a1" : "#f2c14b";
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
+    <rect x="4" y="4" width="18" height="18" rx="9" fill="${color}" stroke="#12100e" stroke-width="1.5"/>
+    <path d="M8 13h10" stroke="#12100e" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>`;
 }

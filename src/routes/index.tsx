@@ -1,8 +1,9 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity,
   Droplets,
+  Sprout,
+  Wind,
   Flame,
   Navigation,
   Radio,
@@ -11,18 +12,19 @@ import {
   Truck,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  getResponseRoute,
-  type ResponseRoute,
-} from "@/lib/response-route.functions";
+import { getResponseRoute, type ResponseRoute } from "@/lib/response-route.functions";
 import { RiskBadge } from "@/components/RiskBadge";
+import { RiskGauge } from "@/components/RiskGauge";
+import { SituationBriefing } from "@/components/SituationBriefing";
 import { SensorRow } from "@/components/SensorRow";
 import { TrendChart } from "@/components/TrendChart";
 import { RateOfRiseChart } from "@/components/RateOfRiseChart";
 import {
   HEAT_BANDS,
   assessRisk,
+  compassPoint,
   distanceKm,
+  evaluateAlerts,
   generateRateOfRise,
   generateTrend,
   nearestStation,
@@ -46,7 +48,9 @@ import {
   formatDistanceFromKm,
   formatElevation,
   formatRate,
+  formatPct,
   formatTemp,
+  formatWind,
   rateUnit,
   rateValue,
   tempUnit,
@@ -102,12 +106,31 @@ function Dashboard() {
   const online = sensors.filter((s) => s.online);
   const network = useMemo(() => {
     if (online.length === 0) return null;
+    const avg = (values: (number | undefined)[]) => {
+      const present = values.filter((v): v is number => v !== undefined);
+      return present.length ? present.reduce((a, v) => a + v, 0) / present.length : undefined;
+    };
     const avgTemp = online.reduce((a, s) => a + s.temperatureF, 0) / online.length;
-    const avgHum = online.reduce((a, s) => a + s.humidityPct, 0) / online.length;
+    const avgHum = avg(online.map((s) => s.humidityPct));
+    const avgSoil = avg(online.map((s) => s.soilMoisturePct));
+    const windy = online.filter((s) => s.windMph !== undefined);
+    const avgWind = avg(windy.map((s) => s.windMph));
+    // Prevailing direction: vector average of wind-from bearings.
+    const dirs = windy.filter((s) => s.windDirDeg !== undefined);
+    const prevailing = dirs.length
+      ? compassPoint(
+          (Math.atan2(
+            dirs.reduce((a, s) => a + Math.sin((s.windDirDeg! * Math.PI) / 180), 0),
+            dirs.reduce((a, s) => a + Math.cos((s.windDirDeg! * Math.PI) / 180), 0),
+          ) *
+            180) /
+            Math.PI,
+        )
+      : null;
     const avgRor = online.reduce((a, s) => a + s.tempTrendFPerHr, 0) / online.length;
     const scores = online.map((s) => assessRisk(s));
     const worst = scores.reduce((a, b) => (b.score > a.score ? b : a));
-    return { avgTemp, avgHum, avgRor, worst, peak: worst.score };
+    return { avgTemp, avgHum, avgSoil, avgWind, prevailing, avgRor, worst, peak: worst.score };
   }, [online]);
 
   const selected = sensors.find((s) => s.id === selectedId) ?? null;
@@ -164,7 +187,8 @@ function Dashboard() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="label-eyebrow flex items-center gap-2">
-            <span className="live-dot" /> Live sensor mesh · {feedLabel(liveSensors.length, demoMesh)}
+            <span className="live-dot" /> Live sensor mesh ·{" "}
+            {feedLabel(liveSensors.length, demoMesh)}
           </p>
           <h1 className="mt-2 flex items-center gap-3 text-4xl font-semibold md:text-5xl">
             <Flame className="size-8 text-primary" aria-hidden />
@@ -176,7 +200,6 @@ function Dashboard() {
             risk scoring, and live topography.
           </p>
           <AppNav />
-
         </div>
         <div className="flex flex-col items-end gap-3">
           <UnitToggle />
@@ -190,36 +213,68 @@ function Dashboard() {
         </div>
       </header>
 
-      <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={<Thermometer className="size-4" />}
-          label="Avg temperature"
-          value={network ? formatTemp(network.avgTemp, system) : "—"}
-          accent="text-temp"
-          note="Across reporting nodes"
-        />
-        <StatCard
-          icon={<Droplets className="size-4" />}
-          label="Avg humidity"
-          value={network ? `${Math.round(network.avgHum)}%` : "—"}
-          accent="text-humidity"
-          note="Relative humidity"
-        />
-        <StatCard
-          icon={<Activity className="size-4" />}
-          label="Peak risk score"
-          value={network ? String(network.peak) : "—"}
-          accent="text-primary"
-          note={network ? `Level: ${network.worst.label}` : "Awaiting telemetry"}
-        />
-        <StatCard
-          icon={<Radio className="size-4" />}
-          label="Mesh health"
-          value={`${Math.round((online.length / Math.max(1, sensors.length)) * 100)}%`}
-          accent="text-risk-low"
-          note="Nodes online"
-        />
+      <section className="mt-8 grid gap-4 lg:grid-cols-[minmax(240px,1fr)_3fr]">
+        <div className="panel flex flex-col items-center justify-center p-5">
+          <p className="label-eyebrow mb-2 self-start">Current fire risk</p>
+          <RiskGauge
+            score={network ? network.peak : null}
+            level={network ? network.worst.level : null}
+            caption={
+              network
+                ? `Highest node · driven by ${[...network.worst.drivers]
+                    .sort((a, b) => b.contribution - a.contribution)[0]!
+                    .label.toLowerCase()}`
+                : "Awaiting telemetry"
+            }
+          />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <StatCard
+            icon={<Thermometer className="size-4" />}
+            label="Avg temperature"
+            value={network ? formatTemp(network.avgTemp, system) : "—"}
+            accent="text-temp"
+            note="Across reporting nodes"
+          />
+          <StatCard
+            icon={<Droplets className="size-4" />}
+            label="Avg humidity"
+            value={formatPct(network?.avgHum)}
+            accent="text-humidity"
+            note="Relative air humidity"
+          />
+          <StatCard
+            icon={<Sprout className="size-4" />}
+            label="Soil moisture"
+            value={formatPct(network?.avgSoil)}
+            accent="text-risk-low"
+            note="Dry soil means dry fuel"
+          />
+          <StatCard
+            icon={<Wind className="size-4" />}
+            label="Wind"
+            value={network?.avgWind !== undefined ? formatWind(network.avgWind, system) : "—"}
+            accent="text-accent"
+            note={network?.prevailing ? `Mostly from the ${network.prevailing}` : "No wind sensors"}
+          />
+          <StatCard
+            icon={<Radio className="size-4" />}
+            label="Reporting units"
+            value={`${online.length} / ${sensors.length}`}
+            accent="text-risk-low"
+            note={`${liveSensors.filter((s) => s.online).length} live Pi · ${sensors.length - online.length} offline`}
+          />
+          <StatCard
+            icon={<Flame className="size-4" />}
+            label="Open alerts"
+            value={String(evaluateAlerts(sensors).length)}
+            accent="text-risk-extreme"
+            note="Thresholds breached"
+          />
+        </div>
       </section>
+
+      <SituationBriefing />
 
       <section className="mt-6 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div className="panel overflow-hidden">
@@ -228,7 +283,11 @@ function Dashboard() {
               <Satellite className="size-4 text-accent" aria-hidden />
               Live topography
             </h2>
-            <div className="flex items-center gap-1 rounded-full border border-border bg-surface-raised p-1" role="tablist" aria-label="Map view">
+            <div
+              className="flex items-center gap-1 rounded-full border border-border bg-surface-raised p-1"
+              role="tablist"
+              aria-label="Map view"
+            >
               {(["heat", "risk", "zones"] as const).map((mode) => (
                 <Button
                   key={mode}
@@ -255,7 +314,9 @@ function Dashboard() {
                 aria-pressed={showStations}
                 variant="outline"
                 size="sm"
-                className={showStations ? "bg-accent text-accent-foreground" : "text-muted-foreground"}
+                className={
+                  showStations ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                }
               >
                 <Navigation className="size-3" aria-hidden />
                 Stations
@@ -268,7 +329,9 @@ function Dashboard() {
                 aria-pressed={showResources}
                 variant="outline"
                 size="sm"
-                className={showResources ? "bg-accent text-accent-foreground" : "text-muted-foreground"}
+                className={
+                  showResources ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                }
               >
                 <Truck className="size-3" aria-hidden />
                 Resources
@@ -279,27 +342,32 @@ function Dashboard() {
             {layer === "heat" ? (
               <>
                 <span className="label-eyebrow mr-1">Surface temperature</span>
-                {HEAT_BANDS.slice().reverse().map((band) => (
-                  <span
-                    key={band.label}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 font-mono text-[0.7rem] tabular-nums"
-                  >
+                {HEAT_BANDS.slice()
+                  .reverse()
+                  .map((band) => (
                     <span
-                      className="size-2.5 rounded-full"
-                      style={{ backgroundColor: band.hex }}
-                      aria-hidden
-                    />
-                    {bandLabel(band, system)}
-                  </span>
-                ))}
+                      key={band.label}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 font-mono text-[0.7rem] tabular-nums"
+                    >
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: band.hex }}
+                        aria-hidden
+                      />
+                      {bandLabel(band, system)}
+                    </span>
+                  ))}
               </>
             ) : layer === "risk" ? (
               <>
                 <span className="label-eyebrow mr-1">Composite risk</span>
-                <RiskBadge level="low" label="Low" />
-                <RiskBadge level="moderate" label="Moderate" />
-                <RiskBadge level="high" label="High" />
-                <RiskBadge level="extreme" label="Extreme" />
+                {(["low", "moderate", "high", "extreme"] as const).map((level) => (
+                  <RiskBadge
+                    key={level}
+                    level={level}
+                    label={`${level} · ${online.filter((x) => assessRisk(x).level === level).length}`}
+                  />
+                ))}
               </>
             ) : (
               <>
@@ -382,14 +450,15 @@ function Dashboard() {
         <div className="panel p-5">
           <h2 className="text-xl">24-hour network trend</h2>
           <p className="mb-3 text-xs text-muted-foreground">
-            Temperature, humidity and composite risk over the last day
+            Temperature, humidity, soil moisture and composite risk (dashed) over the last day
           </p>
           <TrendChart data={trend} />
         </div>
 
-
         <div className="panel p-5">
-          <h2 className="text-xl">{selected ? `${selected.id} · ${selected.name}` : "Node detail"}</h2>
+          <h2 className="text-xl">
+            {selected ? `${selected.id} · ${selected.name}` : "Node detail"}
+          </h2>
           {selected ? (
             <>
               <SensorDetail sensor={selected} />
@@ -438,7 +507,18 @@ function SensorDetail({ sensor }: { sensor: SensorReading }) {
       </div>
       <dl className="grid grid-cols-2 gap-3 font-mono text-sm tabular-nums">
         <Detail label="Temperature" value={formatTemp(sensor.temperatureF, system)} />
-        <Detail label="Humidity" value={`${sensor.humidityPct} %`} />
+        <Detail label="Humidity" value={formatPct(sensor.humidityPct)} />
+        {sensor.soilMoisturePct !== undefined && (
+          <Detail label="Soil moisture" value={formatPct(sensor.soilMoisturePct)} />
+        )}
+        {sensor.windMph !== undefined && (
+          <Detail
+            label="Wind"
+            value={`${formatWind(sensor.windMph, system)}${
+              sensor.windDirDeg !== undefined ? ` ${compassPoint(sensor.windDirDeg)}` : ""
+            }`}
+          />
+        )}
         <Detail label="Elevation" value={formatElevation(sensor.elevationM, system)} />
         <Detail label="Battery" value={`${Math.min(100, sensor.batteryPct)} %`} />
         <Detail label="Trend" value={formatRate(sensor.tempTrendFPerHr, system)} />

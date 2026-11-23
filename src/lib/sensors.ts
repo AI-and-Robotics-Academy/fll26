@@ -12,7 +12,8 @@ export interface SensorReading {
   lng: number;
   elevationM: number;
   temperatureF: number;
-  humidityPct: number;
+  /** Relative air humidity. Optional: Viren's soil-probe units don't measure it. */
+  humidityPct?: number;
   /** Degrees F change over the last hour — feeds the composite score. */
   tempTrendFPerHr: number;
   batteryPct: number;
@@ -22,6 +23,11 @@ export interface SensorReading {
   source?: "sim" | "live";
   /** Second humidity probe (Luke's air-moisture sensor), when the Pi sends one. */
   airHumidityPct?: number;
+  /** Viren's Wildfire Watch inputs — optional, used by the risk engine when present. */
+  windMph?: number;
+  /** Direction the wind blows FROM, degrees clockwise from north. */
+  windDirDeg?: number;
+  soilMoisturePct?: number;
 }
 
 export interface RiskAssessment {
@@ -35,21 +41,46 @@ const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
 export const toFahrenheit = (c: number) => Math.round((c * 9) / 5 + 32);
 
-/** Composite fire-risk score (0-100) from heat, dryness and rate of change. */
+/**
+ * Composite fire-risk score (0-100).
+ *
+ * Smarna's original engine used heat, air dryness and rate of change; Viren's
+ * Wildfire Watch added wind and soil moisture. Each factor has a weight; when
+ * a node doesn't report wind or soil, the remaining weights are scaled up so
+ * every node is still scored out of 100.
+ */
 export function assessRisk(reading: SensorReading): RiskAssessment {
-  // 14°C ≈ 57°F baseline; 30°C span ≈ 54°F span.
-  const heat = clamp01((reading.temperatureF - 57) / 54);
-  const dryness = clamp01((62 - reading.humidityPct) / 50);
-  // 5°C/hr ≈ 9°F/hr.
-  const momentum = clamp01(reading.tempTrendFPerHr / 9);
-
-  const drivers = [
-    { label: "Heat", contribution: Math.round(heat * 45) },
-    { label: "Dryness", contribution: Math.round(dryness * 35) },
-    { label: "Rate of change", contribution: Math.round(momentum * 20) },
+  const factors: { label: string; weight: number; value: number }[] = [
+    // 14°C ≈ 57°F baseline; 30°C span ≈ 54°F span.
+    { label: "Heat", weight: 35, value: clamp01((reading.temperatureF - 57) / 54) },
+    // 5°C/hr ≈ 9°F/hr.
+    { label: "Rate of change", weight: 15, value: clamp01(reading.tempTrendFPerHr / 9) },
   ];
+  if (reading.humidityPct !== undefined) {
+    factors.push({ label: "Dry air", weight: 25, value: clamp01((62 - reading.humidityPct) / 50) });
+  }
+  if (reading.windMph !== undefined) {
+    // Fire spread climbs steeply with wind; 30 mph+ is red-flag territory.
+    factors.push({ label: "Wind", weight: 15, value: clamp01(reading.windMph / 30) });
+  }
+  if (reading.soilMoisturePct !== undefined) {
+    factors.push({
+      label: "Dry soil",
+      weight: 10,
+      value: clamp01((40 - reading.soilMoisturePct) / 35),
+    });
+  }
 
-  const score = Math.min(100, drivers.reduce((sum, d) => sum + d.contribution, 0));
+  const totalWeight = factors.reduce((sum, f) => sum + f.weight, 0);
+  const drivers = factors.map((f) => ({
+    label: f.label,
+    contribution: Math.round((f.value * f.weight * 100) / totalWeight),
+  }));
+
+  const score = Math.min(
+    100,
+    drivers.reduce((sum, d) => sum + d.contribution, 0),
+  );
   const level: RiskLevel =
     score >= 75 ? "extreme" : score >= 50 ? "high" : score >= 25 ? "moderate" : "low";
 
@@ -59,6 +90,42 @@ export function assessRisk(reading: SensorReading): RiskAssessment {
     label: { low: "Low", moderate: "Moderate", high: "High", extreme: "Extreme" }[level],
     drivers,
   };
+}
+
+const COMPASS = [
+  "N",
+  "NNE",
+  "NE",
+  "ENE",
+  "E",
+  "ESE",
+  "SE",
+  "SSE",
+  "S",
+  "SSW",
+  "SW",
+  "WSW",
+  "W",
+  "WNW",
+  "NW",
+  "NNW",
+];
+
+/** 0-360° → 16-point compass label (e.g. 225 → "SW"). */
+export function compassPoint(deg: number): string {
+  return COMPASS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16]!;
+}
+
+/** Accepts degrees or a compass label ("SW"); returns degrees or undefined. */
+export function parseWindDirection(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return ((value % 360) + 360) % 360;
+  if (typeof value === "string") {
+    const index = COMPASS.indexOf(value.trim().toUpperCase());
+    if (index >= 0) return index * 22.5;
+    const n = Number(value);
+    if (Number.isFinite(n)) return ((n % 360) + 360) % 360;
+  }
+  return undefined;
 }
 
 export const RISK_TOKEN: Record<RiskLevel, string> = {
@@ -107,19 +174,117 @@ interface SensorSeed {
   elevationM: number;
   baseTemp: number;
   baseHumidity: number;
+  baseWindMph: number;
+  windFromDeg: number;
+  baseSoilPct: number;
 }
 
 const SEEDS: SensorSeed[] = [
-  { id: "PI-01", name: "Chelan Butte", zone: "Okanogan-Wenatchee NF — North", lat: 47.8213, lng: -120.0559, elevationM: 1093, baseTemp: 96, baseHumidity: 16 },
-  { id: "PI-02", name: "Swauk Ridge", zone: "Okanogan-Wenatchee NF — Cle Elum", lat: 47.3122, lng: -120.6483, elevationM: 1204, baseTemp: 91, baseHumidity: 23 },
-  { id: "PI-03", name: "Methow Valley", zone: "Methow Ranger District", lat: 48.4739, lng: -120.1256, elevationM: 631, baseTemp: 94, baseHumidity: 18 },
-  { id: "PI-04", name: "Mission Peak Relay", zone: "Summit Relay — Wenatchee", lat: 47.3625, lng: -120.4001, elevationM: 2020, baseTemp: 79, baseHumidity: 35 },
-  { id: "PI-05", name: "Yakima Rim", zone: "Yakima Training Corridor", lat: 46.7231, lng: -120.3853, elevationM: 902, baseTemp: 100, baseHumidity: 11 },
-  { id: "PI-06", name: "Colville Ridge", zone: "Colville NF — Northeast", lat: 48.5461, lng: -117.9021, elevationM: 1150, baseTemp: 88, baseHumidity: 27 },
-  { id: "PI-07", name: "Spokane Scablands", zone: "Eastern Shrub-Steppe", lat: 47.4791, lng: -117.9412, elevationM: 715, baseTemp: 93, baseHumidity: 19 },
-  { id: "PI-08", name: "Gifford Pinchot South", zone: "Gifford Pinchot NF — Cowlitz", lat: 46.1439, lng: -121.7412, elevationM: 1180, baseTemp: 77, baseHumidity: 46 },
+  {
+    id: "PI-01",
+    name: "Chelan Butte",
+    zone: "Okanogan-Wenatchee NF — North",
+    lat: 47.8213,
+    lng: -120.0559,
+    elevationM: 1093,
+    baseTemp: 96,
+    baseHumidity: 16,
+    baseWindMph: 14,
+    windFromDeg: 300,
+    baseSoilPct: 12,
+  },
+  {
+    id: "PI-02",
+    name: "Swauk Ridge",
+    zone: "Okanogan-Wenatchee NF — Cle Elum",
+    lat: 47.3122,
+    lng: -120.6483,
+    elevationM: 1204,
+    baseTemp: 91,
+    baseHumidity: 23,
+    baseWindMph: 11,
+    windFromDeg: 270,
+    baseSoilPct: 18,
+  },
+  {
+    id: "PI-03",
+    name: "Methow Valley",
+    zone: "Methow Ranger District",
+    lat: 48.4739,
+    lng: -120.1256,
+    elevationM: 631,
+    baseTemp: 94,
+    baseHumidity: 18,
+    baseWindMph: 16,
+    windFromDeg: 315,
+    baseSoilPct: 10,
+  },
+  {
+    id: "PI-04",
+    name: "Mission Peak Relay",
+    zone: "Summit Relay — Wenatchee",
+    lat: 47.3625,
+    lng: -120.4001,
+    elevationM: 2020,
+    baseTemp: 79,
+    baseHumidity: 35,
+    baseWindMph: 22,
+    windFromDeg: 250,
+    baseSoilPct: 26,
+  },
+  {
+    id: "PI-05",
+    name: "Yakima Rim",
+    zone: "Yakima Training Corridor",
+    lat: 46.7231,
+    lng: -120.3853,
+    elevationM: 902,
+    baseTemp: 100,
+    baseHumidity: 11,
+    baseWindMph: 18,
+    windFromDeg: 290,
+    baseSoilPct: 7,
+  },
+  {
+    id: "PI-06",
+    name: "Colville Ridge",
+    zone: "Colville NF — Northeast",
+    lat: 48.5461,
+    lng: -117.9021,
+    elevationM: 1150,
+    baseTemp: 88,
+    baseHumidity: 27,
+    baseWindMph: 9,
+    windFromDeg: 225,
+    baseSoilPct: 22,
+  },
+  {
+    id: "PI-07",
+    name: "Spokane Scablands",
+    zone: "Eastern Shrub-Steppe",
+    lat: 47.4791,
+    lng: -117.9412,
+    elevationM: 715,
+    baseTemp: 93,
+    baseHumidity: 19,
+    baseWindMph: 20,
+    windFromDeg: 240,
+    baseSoilPct: 9,
+  },
+  {
+    id: "PI-08",
+    name: "Gifford Pinchot South",
+    zone: "Gifford Pinchot NF — Cowlitz",
+    lat: 46.1439,
+    lng: -121.7412,
+    elevationM: 1180,
+    baseTemp: 77,
+    baseHumidity: 46,
+    baseWindMph: 7,
+    windFromDeg: 200,
+    baseSoilPct: 38,
+  },
 ];
-
 
 const jitter = (spread: number) => (Math.random() - 0.5) * spread;
 
@@ -141,6 +306,9 @@ export function generateReadings(): SensorReading[] {
       online,
       lastSeenSecondsAgo: online ? Math.round(Math.random() * 45) : 1420,
       source: "sim" as const,
+      windMph: Math.max(0, Math.round(seed.baseWindMph + jitter(6))),
+      windDirDeg: Math.round((seed.windFromDeg + jitter(30) + 360) % 360),
+      soilMoisturePct: Math.max(2, Math.round(seed.baseSoilPct + jitter(4))),
     };
   });
 }
@@ -149,6 +317,8 @@ export interface TrendPoint {
   time: string;
   temperatureF: number;
   humidityPct: number;
+  /** Network-average soil moisture (Viren's probe). */
+  soilPct: number;
   risk: number;
 }
 
@@ -160,16 +330,26 @@ export function generateTrend(): TrendPoint[] {
     // 26°C ≈ 79°F baseline; 9°C range ≈ 16°F range.
     const temperatureF = Math.round((79 + diurnal * 16 + jitter(3)) * 10) / 10;
     const humidityPct = Math.max(6, Math.round(32 - diurnal * 16 + jitter(4)));
+    // Soil dries slowly through the afternoon and recovers a little overnight.
+    const soilPct = Math.max(4, Math.round(20 - diurnal * 5 + jitter(2)));
     const risk = assessRisk({
       ...SEEDS[0]!,
       temperatureF,
       humidityPct,
+      soilMoisturePct: soilPct,
+      windMph: Math.max(0, 10 + diurnal * 6),
       tempTrendFPerHr: diurnal * 5.4,
       batteryPct: 90,
       online: true,
       lastSeenSecondsAgo: 5,
     } as SensorReading).score;
-    return { time: `${String(hour).padStart(2, "0")}:00`, temperatureF, humidityPct, risk };
+    return {
+      time: `${String(hour).padStart(2, "0")}:00`,
+      temperatureF,
+      humidityPct,
+      soilPct,
+      risk,
+    };
   });
 }
 
@@ -183,13 +363,43 @@ export interface FireStation {
 
 /** Washington State wildfire response bases / district stations. */
 export const FIRE_STATIONS: FireStation[] = [
-  { id: "ST-WEN", name: "Wenatchee Valley Fire Dept.", city: "Wenatchee", lat: 47.4235, lng: -120.3103 },
-  { id: "ST-CHE", name: "Chelan Co. Fire District 7", city: "Chelan", lat: 47.8409, lng: -120.0166 },
+  {
+    id: "ST-WEN",
+    name: "Wenatchee Valley Fire Dept.",
+    city: "Wenatchee",
+    lat: 47.4235,
+    lng: -120.3103,
+  },
+  {
+    id: "ST-CHE",
+    name: "Chelan Co. Fire District 7",
+    city: "Chelan",
+    lat: 47.8409,
+    lng: -120.0166,
+  },
   { id: "ST-TWI", name: "Okanogan Co. District 6", city: "Twisp", lat: 48.3665, lng: -120.1198 },
-  { id: "ST-CLE", name: "Kittitas Valley Fire & Rescue", city: "Cle Elum", lat: 47.1954, lng: -120.9392 },
-  { id: "ST-YAK", name: "Yakima Fire Dept. Station 5", city: "Yakima", lat: 46.6021, lng: -120.5059 },
+  {
+    id: "ST-CLE",
+    name: "Kittitas Valley Fire & Rescue",
+    city: "Cle Elum",
+    lat: 47.1954,
+    lng: -120.9392,
+  },
+  {
+    id: "ST-YAK",
+    name: "Yakima Fire Dept. Station 5",
+    city: "Yakima",
+    lat: 46.6021,
+    lng: -120.5059,
+  },
   { id: "ST-COL", name: "Colville Fire Dept.", city: "Colville", lat: 48.5457, lng: -117.9052 },
-  { id: "ST-SPO", name: "Spokane Valley Fire District 8", city: "Spokane Valley", lat: 47.6588, lng: -117.2394 },
+  {
+    id: "ST-SPO",
+    name: "Spokane Valley Fire District 8",
+    city: "Spokane Valley",
+    lat: 47.6588,
+    lng: -117.2394,
+  },
   { id: "ST-RAN", name: "Cowlitz 2 Fire & Rescue", city: "Randle", lat: 46.5321, lng: -122.0053 },
   // Eastside stations near the team's live Raspberry Pi nodes (approximate locations).
   { id: "ST-BEL", name: "Bellevue Fire Station 1", city: "Bellevue", lat: 47.6087, lng: -122.2007 },
@@ -207,8 +417,7 @@ export function distanceKm(
   const dLat = rad(b.lat - a.lat);
   const dLng = rad(b.lng - a.lng);
   const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+    Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
   return 2 * R_EARTH_KM * Math.asin(Math.sqrt(h));
 }
 
@@ -337,7 +546,7 @@ export function evaluateAlerts(
       });
     }
 
-    if (s.humidityPct <= thresholds.humidityPct) {
+    if (s.humidityPct !== undefined && s.humidityPct <= thresholds.humidityPct) {
       alerts.push({
         id: `${s.id}-hum`,
         sensorId: s.id,
@@ -384,9 +593,7 @@ export function evaluateAlerts(
   }
 
   const order: Record<AlertSeverity, number> = { critical: 0, warning: 1, watch: 2 };
-  return alerts.sort(
-    (a, b) => order[a.severity] - order[b.severity] || b.riskScore - a.riskScore,
-  );
+  return alerts.sort((a, b) => order[a.severity] - order[b.severity] || b.riskScore - a.riskScore);
 }
 
 export const SEVERITY_STYLE: Record<AlertSeverity, { label: string; token: string }> = {

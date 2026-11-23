@@ -2,6 +2,7 @@
 // keyless OpenTopoMap fallback (LeafletMap).
 
 import { RESOURCE_STATUS_HEX, type Resource } from "@/lib/field-data";
+import type { SpreadPrediction } from "@/lib/fire-spread";
 import {
   RISK_HEX,
   assessRisk,
@@ -27,6 +28,8 @@ export interface MapProps {
   onSelectResource?: (id: string) => void;
   /** Fit the view to these points once the map loads (default: statewide view). */
   fitTo?: { lat: number; lng: number }[];
+  /** Viren's Area Intelligence overlay (Leaflet engine only). */
+  spread?: SpreadPrediction | null;
 }
 
 export const DEFAULT_CENTER = { lat: 47.4, lng: -120.2 };

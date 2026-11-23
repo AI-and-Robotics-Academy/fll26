@@ -84,3 +84,13 @@ export const formatDistanceFromKm = (km: number, s: UnitSystem, digits = 1) =>
 
 export const formatElevation = (m: number, s: UnitSystem) =>
   `${Math.round(s === "metric" ? m : mToFt(m))} ${elevationUnit(s)}`;
+
+export const windUnit = (s: UnitSystem) => (s === "metric" ? "km/h" : "mph");
+export const windValue = (mph: number, s: UnitSystem) => (s === "metric" ? mph * 1.609344 : mph);
+
+/** Wind speed in the active system, e.g. "14 mph". */
+export const formatWind = (mph: number, s: UnitSystem) =>
+  `${Math.round(windValue(mph, s))} ${windUnit(s)}`;
+
+/** "42%" or "—" when the sensor doesn't measure it. */
+export const formatPct = (v: number | undefined) => (v === undefined ? "—" : `${Math.round(v)}%`);

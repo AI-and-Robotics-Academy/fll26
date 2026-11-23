@@ -1,7 +1,15 @@
-import { Droplets, Thermometer, TrendingDown, TrendingUp, WifiOff } from "lucide-react";
+import {
+  Droplets,
+  Sprout,
+  Thermometer,
+  TrendingDown,
+  TrendingUp,
+  Wind,
+  WifiOff,
+} from "lucide-react";
 import { RiskBadge } from "@/components/RiskBadge";
-import { assessRisk, type SensorReading } from "@/lib/sensors";
-import { formatRate, formatTemp, useUnits } from "@/lib/units";
+import { assessRisk, compassPoint, type SensorReading } from "@/lib/sensors";
+import { formatPct, formatRate, formatTemp, formatWind, useUnits } from "@/lib/units";
 import { cn } from "@/lib/utils";
 
 export function SensorRow({
@@ -53,15 +61,39 @@ export function SensorRow({
           <Thermometer className="size-3.5" />
           {formatTemp(sensor.temperatureF, system)}
         </span>
-        <span className="inline-flex items-center gap-1.5 text-humidity">
-          <Droplets className="size-3.5" />
-          {sensor.humidityPct}%
-        </span>
+        {sensor.humidityPct !== undefined ? (
+          <span className="inline-flex items-center gap-1.5 text-humidity" title="Air humidity">
+            <Droplets className="size-3.5" />
+            {formatPct(sensor.humidityPct)}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 text-humidity" title="Soil moisture">
+            <Sprout className="size-3.5" />
+            {formatPct(sensor.soilMoisturePct)}
+          </span>
+        )}
         <span className="inline-flex items-center gap-1.5 text-muted-foreground">
           <Trend className="size-3.5" />
           {formatRate(sensor.tempTrendFPerHr, system)}
         </span>
       </div>
+      {(sensor.windMph !== undefined || sensor.soilMoisturePct !== undefined) && (
+        <div className="mt-1.5 flex gap-4 font-mono text-xs tabular-nums text-muted-foreground">
+          {sensor.windMph !== undefined && (
+            <span className="inline-flex items-center gap-1.5" title="Wind">
+              <Wind className="size-3" />
+              {formatWind(sensor.windMph, system)}
+              {sensor.windDirDeg !== undefined && ` ${compassPoint(sensor.windDirDeg)}`}
+            </span>
+          )}
+          {sensor.soilMoisturePct !== undefined && sensor.humidityPct !== undefined && (
+            <span className="inline-flex items-center gap-1.5" title="Soil moisture">
+              <Sprout className="size-3" />
+              soil {formatPct(sensor.soilMoisturePct)}
+            </span>
+          )}
+        </div>
+      )}
     </button>
   );
 }

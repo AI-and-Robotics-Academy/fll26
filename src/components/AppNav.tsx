@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { BellRing, Cpu, LayoutDashboard, Truck } from "lucide-react";
+import { BellRing, Cpu, LayoutDashboard, Radar, ScrollText, Truck } from "lucide-react";
 import { useMemo } from "react";
 import { useFieldData } from "@/lib/field-data";
 import { evaluateAlerts } from "@/lib/sensors";
@@ -7,7 +7,9 @@ import { evaluateAlerts } from "@/lib/sensors";
 const ITEMS = [
   { to: "/", label: "Console", icon: LayoutDashboard },
   { to: "/alerts", label: "Alerts", icon: BellRing },
+  { to: "/intel", label: "Area Intel", icon: Radar },
   { to: "/resources", label: "Resources", icon: Truck },
+  { to: "/readings", label: "Readings", icon: ScrollText },
   { to: "/devices", label: "Devices", icon: Cpu },
 ] as const;
 

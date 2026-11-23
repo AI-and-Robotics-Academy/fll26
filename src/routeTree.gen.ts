@@ -13,9 +13,12 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DevicesRouteImport } from './routes/devices'
+import { Route as IntelRouteImport } from './routes/intel'
+import { Route as ReadingsRouteImport } from './routes/readings'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ResourcesRouteImport } from './routes/resources'
 import { Route as ApiDevicesIndexRouteImport } from './routes/api/devices/index'
+import { Route as ApiReadingsIndexRouteImport } from './routes/api/readings/index'
 import { Route as ApiDevicesDeviceIdTelemetryRouteImport } from './routes/api/devices/$deviceId/telemetry'
 
 const IndexRoute = IndexRouteImport.update({
@@ -38,6 +41,16 @@ const DevicesRoute = DevicesRouteImport.update({
   path: '/devices',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IntelRoute = IntelRouteImport.update({
+  id: '/intel',
+  path: '/intel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReadingsRoute = ReadingsRouteImport.update({
+  id: '/readings',
+  path: '/readings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -53,6 +66,11 @@ const ApiDevicesIndexRoute = ApiDevicesIndexRouteImport.update({
   path: '/api/devices/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiReadingsIndexRoute = ApiReadingsIndexRouteImport.update({
+  id: '/api/readings/',
+  path: '/api/readings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiDevicesDeviceIdTelemetryRoute =
   ApiDevicesDeviceIdTelemetryRouteImport.update({
     id: '/api/devices/$deviceId/telemetry',
@@ -65,9 +83,12 @@ export interface FileRoutesByFullPath {
   '/alerts': typeof AlertsRoute
   '/auth': typeof AuthRoute
   '/devices': typeof DevicesRoute
+  '/intel': typeof IntelRoute
+  '/readings': typeof ReadingsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/resources': typeof ResourcesRoute
   '/api/devices/': typeof ApiDevicesIndexRoute
+  '/api/readings/': typeof ApiReadingsIndexRoute
   '/api/devices/$deviceId/telemetry': typeof ApiDevicesDeviceIdTelemetryRoute
 }
 export interface FileRoutesByTo {
@@ -75,9 +96,12 @@ export interface FileRoutesByTo {
   '/alerts': typeof AlertsRoute
   '/auth': typeof AuthRoute
   '/devices': typeof DevicesRoute
+  '/intel': typeof IntelRoute
+  '/readings': typeof ReadingsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/resources': typeof ResourcesRoute
   '/api/devices': typeof ApiDevicesIndexRoute
+  '/api/readings': typeof ApiReadingsIndexRoute
   '/api/devices/$deviceId/telemetry': typeof ApiDevicesDeviceIdTelemetryRoute
 }
 export interface FileRoutesById {
@@ -86,9 +110,12 @@ export interface FileRoutesById {
   '/alerts': typeof AlertsRoute
   '/auth': typeof AuthRoute
   '/devices': typeof DevicesRoute
+  '/intel': typeof IntelRoute
+  '/readings': typeof ReadingsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/resources': typeof ResourcesRoute
   '/api/devices/': typeof ApiDevicesIndexRoute
+  '/api/readings/': typeof ApiReadingsIndexRoute
   '/api/devices/$deviceId/telemetry': typeof ApiDevicesDeviceIdTelemetryRoute
 }
 export interface FileRouteTypes {
@@ -98,9 +125,12 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/auth'
     | '/devices'
+    | '/intel'
+    | '/readings'
     | '/reset-password'
     | '/resources'
     | '/api/devices/'
+    | '/api/readings/'
     | '/api/devices/$deviceId/telemetry'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -108,9 +138,12 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/auth'
     | '/devices'
+    | '/intel'
+    | '/readings'
     | '/reset-password'
     | '/resources'
     | '/api/devices'
+    | '/api/readings'
     | '/api/devices/$deviceId/telemetry'
   id:
     | '__root__'
@@ -118,9 +151,12 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/auth'
     | '/devices'
+    | '/intel'
+    | '/readings'
     | '/reset-password'
     | '/resources'
     | '/api/devices/'
+    | '/api/readings/'
     | '/api/devices/$deviceId/telemetry'
   fileRoutesById: FileRoutesById
 }
@@ -129,9 +165,12 @@ export interface RootRouteChildren {
   AlertsRoute: typeof AlertsRoute
   AuthRoute: typeof AuthRoute
   DevicesRoute: typeof DevicesRoute
+  IntelRoute: typeof IntelRoute
+  ReadingsRoute: typeof ReadingsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ResourcesRoute: typeof ResourcesRoute
   ApiDevicesIndexRoute: typeof ApiDevicesIndexRoute
+  ApiReadingsIndexRoute: typeof ApiReadingsIndexRoute
   ApiDevicesDeviceIdTelemetryRoute: typeof ApiDevicesDeviceIdTelemetryRoute
 }
 
@@ -165,6 +204,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevicesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/intel': {
+      id: '/intel'
+      path: '/intel'
+      fullPath: '/intel'
+      preLoaderRoute: typeof IntelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/readings': {
+      id: '/readings'
+      path: '/readings'
+      fullPath: '/readings'
+      preLoaderRoute: typeof ReadingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -186,6 +239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDevicesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/readings/': {
+      id: '/api/readings/'
+      path: '/api/readings'
+      fullPath: '/api/readings/'
+      preLoaderRoute: typeof ApiReadingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/devices/$deviceId/telemetry': {
       id: '/api/devices/$deviceId/telemetry'
       path: '/api/devices/$deviceId/telemetry'
@@ -201,9 +261,12 @@ const rootRouteChildren: RootRouteChildren = {
   AlertsRoute: AlertsRoute,
   AuthRoute: AuthRoute,
   DevicesRoute: DevicesRoute,
+  IntelRoute: IntelRoute,
+  ReadingsRoute: ReadingsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ResourcesRoute: ResourcesRoute,
   ApiDevicesIndexRoute: ApiDevicesIndexRoute,
+  ApiReadingsIndexRoute: ApiReadingsIndexRoute,
   ApiDevicesDeviceIdTelemetryRoute: ApiDevicesDeviceIdTelemetryRoute,
 }
 export const routeTree = rootRouteImport

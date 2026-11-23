@@ -1,6 +1,6 @@
 import { CircleDot, Droplets, Radio, Thermometer } from "lucide-react";
 import { assessRisk, type SensorReading } from "@/lib/sensors";
-import { formatTemp, useUnits } from "@/lib/units";
+import { formatTemp, useUnits, formatPct } from "@/lib/units";
 import { cn } from "@/lib/utils";
 
 type ZoneRisk = "high" | "medium" | "low";
@@ -80,7 +80,7 @@ export function ZoneCard({ sensor }: { sensor: SensorReading }) {
             <Droplets className="size-3.5 text-humidity" aria-hidden /> Moisture
           </dt>
           <dd className="mt-1 font-mono text-lg tabular-nums text-humidity">
-            {sensor.humidityPct}%
+            {formatPct(sensor.humidityPct ?? sensor.soilMoisturePct)}
           </dd>
         </div>
       </dl>

@@ -1,6 +1,6 @@
 import {
   Area,
-  AreaChart,
+  ComposedChart,
   CartesianGrid,
   Line,
   ResponsiveContainer,
@@ -20,7 +20,7 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={220}>
-      <AreaChart data={series} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+      <ComposedChart data={series} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
         <defs>
           <linearGradient id="tempFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--color-temp)" stopOpacity={0.45} />
@@ -69,6 +69,14 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
         />
         <Line
           type="monotone"
+          dataKey="soilPct"
+          name="Soil moisture %"
+          stroke="var(--color-risk-low)"
+          strokeWidth={1.5}
+          dot={false}
+        />
+        <Line
+          type="monotone"
           dataKey="risk"
           name="Risk score"
           stroke="var(--color-risk-extreme)"
@@ -76,7 +84,7 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
           strokeDasharray="4 3"
           dot={false}
         />
-      </AreaChart>
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }

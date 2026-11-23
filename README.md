@@ -9,10 +9,12 @@ See [TEAM.md](TEAM.md) for who built what and a 2-minute judge demo.
 
 | Page | What it does |
 | --- | --- |
-| `/` Console | Heat / risk / zone map, nodes ranked by risk, rate-of-rise chart, dispatch route + closest resources |
+| `/` Console | Fire-risk gauge, temperature / humidity / soil / wind cards, AI situation briefing, heat / risk / zone map, dispatch route + closest resources, trend charts |
 | `/alerts` | Threshold alarms with adjustable limits and Acknowledge |
+| `/intel` Area Intel | Search an area or pick a sensor: fire spread prediction, terrain, 4 fire-line positions with truck / drone / helicopter GPS and NOTAM notes |
 | `/resources` | Live tracker for tankers, engines, ambulances, buses and supplies |
-| `/devices` | Live Raspberry Pi nodes, test readings, how to connect a Pi |
+| `/readings` | Last 100 live readings with risk and online/offline status |
+| `/devices` | Register field units, live Pi list, test readings, copy-ready Pi bridge script |
 | Ask FireWatch AI | Helper on every page that answers from the live readings |
 
 ## Run it
@@ -36,7 +38,7 @@ Then follow [hardware/raspberry-pi/README.md](hardware/raspberry-pi/README.md).
 
 | Variable | Purpose |
 | --- | --- |
-| `OPENAI_API_KEY` | Full AI answers. Without it the helper answers from the readings with built-in rules. |
+| `OPENAI_API_KEY` | Full AI answers, briefings and Area Intel web search. Without it, chat and briefings use built-in rules and Area Intel runs its offline spread model. |
 | `FIREWATCH_AI_MODEL` | OpenAI model (default `gpt-5-mini`) |
 | `FIREWATCH_INGEST_TOKEN` | Require this token from every Pi (`X-FireWatch-Token` header) |
 | `VITE_WILDGUARD_MAP=osm` | Always use the free OpenTopoMap map instead of Google Maps |

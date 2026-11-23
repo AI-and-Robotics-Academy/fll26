@@ -2,9 +2,8 @@ import { useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Send, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { askFireWatchAI, type ChatTurn } from "@/lib/ai.functions";
-import { useFieldData, resourceLabel } from "@/lib/field-data";
-import { assessRisk, evaluateAlerts } from "@/lib/sensors";
+import { askFireWatchAI, buildFieldContext, type ChatTurn } from "@/lib/ai.functions";
+import { useFieldData } from "@/lib/field-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -48,25 +47,7 @@ export function FireWatchAI() {
         data: {
           message: question,
           history,
-          openAlerts: evaluateAlerts(sensors).length,
-          availableResources: resources
-            .filter((r) => r.status === "Available")
-            .map((r) => `${resourceLabel(r.type)} ${r.id}`),
-          sensors: sensors.map((s) => {
-            const risk = assessRisk(s);
-            return {
-              id: s.id,
-              name: s.name,
-              zone: s.zone,
-              temperatureF: s.temperatureF,
-              humidityPct: s.humidityPct,
-              trendFPerHr: s.tempTrendFPerHr,
-              risk: risk.score,
-              riskLabel: risk.label,
-              online: s.online,
-              live: s.source === "live",
-            };
-          }),
+          ...buildFieldContext(sensors, resources),
         },
       });
       setMessages((m) => [
