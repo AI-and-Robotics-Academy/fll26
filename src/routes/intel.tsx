@@ -54,6 +54,10 @@ export const Route = createFileRoute("/intel")({
         content:
           "Fire spread prediction, terrain, and recommended fire-line positions with truck, drone and helicopter GPS.",
       },
+      { property: "og:title", content: "Area Intelligence — WildGuard" },
+      { property: "og:description", content: "Fire spread prediction, terrain, and recommended fire-line positions with truck, drone and helicopter GPS." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: GuardedIntelPage,
@@ -107,8 +111,9 @@ function IntelPage() {
 
   // Start on the riskiest node so the page is never empty in a demo.
   useEffect(() => {
-    if (origin || !ranked.length) return;
-    pickSensor(ranked[0]!);
+    const first = ranked[0];
+    if (origin || !first) return;
+    pickSensor(first);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ranked.length]);
 

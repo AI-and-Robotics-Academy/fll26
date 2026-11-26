@@ -59,7 +59,7 @@ function hashPassword(email: string, password: string): string {
   for (const seed of [0x811c9dc5, 0x01000193]) {
     let h = seed;
     for (const ch of `${email.toLowerCase()}:${password}`) {
-      h ^= ch.codePointAt(0)!;
+      h ^= (ch.codePointAt(0) ?? 0);
       h = Math.imul(h, 0x01000193) >>> 0;
     }
     out += h.toString(16).padStart(8, "0");
@@ -186,7 +186,7 @@ export function DemoAuthProvider({ children }: { children: ReactNode }) {
         homePlace: input.homePlace,
         ...(input.role === "firefighter"
           ? {
-              badgeId: input.badgeId!.trim().slice(0, 20),
+              badgeId: (input.badgeId ?? "").trim().slice(0, 20),
               station: (input.station ?? "").trim().slice(0, 60),
             }
           : {}),

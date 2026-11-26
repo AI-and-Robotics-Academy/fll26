@@ -121,8 +121,8 @@ function Dashboard() {
     const prevailing = dirs.length
       ? compassPoint(
           (Math.atan2(
-            dirs.reduce((a, s) => a + Math.sin((s.windDirDeg! * Math.PI) / 180), 0),
-            dirs.reduce((a, s) => a + Math.cos((s.windDirDeg! * Math.PI) / 180), 0),
+            dirs.reduce((a, s) => a + Math.sin(((s.windDirDeg ?? 0) * Math.PI) / 180), 0),
+            dirs.reduce((a, s) => a + Math.cos(((s.windDirDeg ?? 0) * Math.PI) / 180), 0),
           ) *
             180) /
             Math.PI,
@@ -223,8 +223,7 @@ function Dashboard() {
             caption={
               network
                 ? `Highest node · driven by ${[...network.worst.drivers]
-                    .sort((a, b) => b.contribution - a.contribution)[0]!
-                    .label.toLowerCase()}`
+                    .sort((a, b) => b.contribution - a.contribution)[0]?.label.toLowerCase() ?? "conditions"}`
                 : "Awaiting telemetry"
             }
           />
@@ -493,8 +492,8 @@ function bandLabel(band: (typeof HEAT_BANDS)[number], system: UnitSystem) {
   const unit = tempUnit(system);
   const v = (f: number) => Math.round(tempValue(f, system));
   if (i === 0) return `${v(band.min)}${unit}+`;
-  if (i === HEAT_BANDS.length - 1) return `Below ${v(HEAT_BANDS[i - 1]!.min)}${unit}`;
-  return `${v(band.min)}–${v(HEAT_BANDS[i - 1]!.min)}${unit}`;
+  if (i === HEAT_BANDS.length - 1) return `Below ${v((HEAT_BANDS[i - 1]?.min ?? band.min))}${unit}`;
+  return `${v(band.min)}–${v((HEAT_BANDS[i - 1]?.min ?? band.min))}${unit}`;
 }
 
 function SensorDetail({ sensor }: { sensor: SensorReading }) {

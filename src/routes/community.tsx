@@ -33,6 +33,10 @@ export const Route = createFileRoute("/community")({
         name: "description",
         content: "Wildfire danger, readiness and smoke reporting for your home area.",
       },
+      { property: "og:title", content: "My area — WildGuard" },
+      { property: "og:description", content: "Wildfire danger, readiness and smoke reporting for your home area." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: () => (

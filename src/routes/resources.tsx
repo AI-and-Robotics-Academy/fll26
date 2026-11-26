@@ -32,6 +32,8 @@ export const Route = createFileRoute("/resources")({
         property: "og:description",
         content: "Live emergency resource status and location for wildfire response crews.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: GuardedResourcesPage,

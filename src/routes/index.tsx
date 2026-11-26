@@ -41,6 +41,7 @@ export const Route = createFileRoute("/")({
         content: "Check wildfire danger, alerts and conditions near you — no account needed.",
       },
       { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Landing,

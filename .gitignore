@@ -41,3 +41,9 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Credentials and generated compiler state
+.env
+.env.*
+!.env.example
+*.tsbuildinfo

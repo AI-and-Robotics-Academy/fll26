@@ -41,6 +41,10 @@ export const Route = createFileRoute("/auth")({
         name: "description",
         content: "Sign in or create a WildGuard account for firefighters and citizens.",
       },
+      { property: "og:title", content: "Sign In | WildGuard" },
+      { property: "og:description", content: "Sign in or create a WildGuard account for firefighters and citizens." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AuthPage,
@@ -69,7 +73,7 @@ function AuthPage() {
     password: "",
     homePlace: "Bellevue",
     badgeId: "",
-    station: FIRE_STATIONS.find((s) => s.city === "Bellevue")?.name ?? FIRE_STATIONS[0]!.name,
+    station: FIRE_STATIONS.find((s) => s.city === "Bellevue")?.name ?? FIRE_STATIONS[0]?.name ?? "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);

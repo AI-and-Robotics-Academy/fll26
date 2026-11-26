@@ -113,7 +113,7 @@ const COMPASS = [
 
 /** 0-360° → 16-point compass label (e.g. 225 → "SW"). */
 export function compassPoint(deg: number): string {
-  return COMPASS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16]!;
+  return COMPASS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16] ?? "N";
 }
 
 /** Accepts degrees or a compass label ("SW"); returns degrees or undefined. */
@@ -160,7 +160,7 @@ export const HEAT_BANDS: HeatBand[] = [
 ];
 
 export function heatBand(temperatureF: number): HeatBand {
-  return HEAT_BANDS.find((b) => temperatureF >= b.min) ?? HEAT_BANDS[HEAT_BANDS.length - 1]!;
+  return HEAT_BANDS.find((b) => temperatureF >= b.min) ?? { min: -100, label: "Below 75°F", hex: RISK_HEX.low };
 }
 
 export const heatColor = (temperatureF: number) => heatBand(temperatureF).hex;
@@ -373,7 +373,7 @@ export function generateTrend(): TrendPoint[] {
     // Soil dries slowly through the afternoon and recovers a little overnight.
     const soilPct = Math.max(4, Math.round(20 - diurnal * 5 + jitter(2)));
     const risk = assessRisk({
-      ...SEEDS[0]!,
+      ...SEEDS[0],
       temperatureF,
       humidityPct,
       soilMoisturePct: soilPct,

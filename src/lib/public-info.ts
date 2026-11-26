@@ -39,7 +39,7 @@ export const PLACES: Place[] = [
 
 export const PUBLIC_RADIUS_KM = 80;
 
-export const findPlace = (name: string) => PLACES.find((p) => p.name === name) ?? PLACES[0]!;
+export const findPlace = (name: string) => PLACES.find((p) => p.name === name) ?? { name: "Bellevue", lat: 47.6101, lng: -122.2015 };
 
 /** Closest listed town to a GPS point (used for "Use my location"). */
 export function nearestPlace(point: { lat: number; lng: number }): Place {
@@ -115,8 +115,8 @@ export function summarizeArea(
   const windFrom = dirs.length
     ? compassPoint(
         (Math.atan2(
-          dirs.reduce((a, s) => a + Math.sin((s.windDirDeg! * Math.PI) / 180), 0),
-          dirs.reduce((a, s) => a + Math.cos((s.windDirDeg! * Math.PI) / 180), 0),
+          dirs.reduce((a, s) => a + Math.sin(((s.windDirDeg ?? 0) * Math.PI) / 180), 0),
+          dirs.reduce((a, s) => a + Math.cos(((s.windDirDeg ?? 0) * Math.PI) / 180), 0),
         ) *
           180) /
           Math.PI,

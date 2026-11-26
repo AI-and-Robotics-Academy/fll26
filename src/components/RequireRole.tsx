@@ -13,7 +13,7 @@ export function RequireRole({ roles, children }: { roles: Role[]; children: Reac
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   // Remember the page the visitor asked for before we redirect away from it.
   const [wanted] = useState(pathname);
-  const firstRole = roles[0]!;
+  const firstRole = roles[0] ?? "citizen";
 
   useEffect(() => {
     if (ready && !user) {
